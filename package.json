@@ -4,10 +4,11 @@
   "description": "backend for cooklens web app",
   "main": "server.ts",
   "scripts": {
-    "test": "echo \"console.log('Hello typescript!')\" > server.ts",
-    "start": "ts-node src/server.ts",
-    "build": "tsc",
-    "dev": "nodemon src/server.ts"
+    "start": "node dist/server.js",
+    "postinstall": "npm run tsc",
+    "tsc": "tsc --project .",
+    "dev": "nodemon src/server.ts",
+    "prod": "nodemon dist/server.js"
   },
   "repository": {
     "type": "git",
