@@ -4,7 +4,7 @@
   "description": "backend for cooklens web app",
   "main": "server.ts",
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "tsc && node ./dist/src/server.js",
     "postinstall": "npm run tsc",
     "tsc": "tsc --project .",
     "dev": "nodemon src/server.ts",
