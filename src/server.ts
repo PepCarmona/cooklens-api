@@ -1,12 +1,16 @@
 import cors from 'cors';
 import express from 'express';
 import { connectDB } from './helpers/db';
-import { KEYS } from './helpers/keys';
+import dotenv from 'dotenv';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-connectDB(KEYS.cooklensDB_URI);
+if (process.env.NODE_ENV !== 'production') {
+	dotenv.config();
+}
+
+connectDB(process.env.MONGODB_URI);
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
