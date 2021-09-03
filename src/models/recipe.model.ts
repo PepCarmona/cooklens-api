@@ -6,10 +6,10 @@ export interface IRecipe {
 }
 
 const RecipeSchema = new Schema<IRecipe>(
-	{
-		title: String,
-		body: String,
-	}
+    {
+        title: String,
+        body: String,
+    }
 );
 
 export interface RecipeDocument extends IRecipe, Document {}
