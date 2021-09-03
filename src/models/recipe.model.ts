@@ -3,14 +3,12 @@ import { Document, model, Schema } from 'mongoose';
 export interface Recipe {
   title: string;
   body: string;
-  userID: string;
 }
 
 const RecipeSchema = new Schema<Recipe>(
 	{
 		title: String,
 		body: String,
-		userID: String,
 	}
 );
 

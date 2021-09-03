@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { connectDB } from './helpers/db';
 import dotenv from 'dotenv';
+import recipeRouter from './routes/recipe.route';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,6 +24,8 @@ app.get('/', (req, res) => {
 	}
 	res.send(welcomeString);
 });
+
+app.use('/recipes', recipeRouter);
 
 app.listen(PORT, () =>
 	console.log(`Server is running on http://localhost:${PORT}`)
