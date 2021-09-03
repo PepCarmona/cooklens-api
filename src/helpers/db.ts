@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
-export function connectDB(DB_URI: string | undefined): void {
+export function connectDB(DB_URI: string | undefined): boolean {
 	if (!DB_URI) {
 		console.log('No database uri');
-		return;
+		return false;
 	}
 	mongoose.Promise = global.Promise;
 	mongoose
@@ -12,4 +12,5 @@ export function connectDB(DB_URI: string | undefined): void {
 			() => console.log('Database connected'),
 			(err: unknown) => console.log('Error connecting to database. ', err)
 		);
+	return true;
 }
