@@ -13,7 +13,7 @@ recipeRouter.route('/get').get((req, res) => {
             })
             .catch((err) => {
                 res.status(404).json(err);
-            })
+            });
     }
     else {
         Recipe
