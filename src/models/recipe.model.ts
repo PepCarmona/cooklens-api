@@ -1,17 +1,17 @@
 import { Document, model, Schema } from 'mongoose';
 
-export interface Recipe {
+export interface IRecipe {
   title: string;
   body: string;
 }
 
-const RecipeSchema = new Schema<Recipe>(
+const RecipeSchema = new Schema<IRecipe>(
 	{
 		title: String,
 		body: String,
 	}
 );
 
-export interface RecipeDocument extends Recipe, Document {}
+export interface RecipeDocument extends IRecipe, Document {}
 
-export default model<Recipe>('Recipe', RecipeSchema, 'recipes');
+export default model<IRecipe>('Recipe', RecipeSchema, 'recipes');
