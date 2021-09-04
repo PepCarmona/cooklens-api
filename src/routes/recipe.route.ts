@@ -86,6 +86,6 @@ recipeRouter.route('/delete').delete((req, res) => {
                 res.status(404).json(err);
             });
     }
-  });
+});
 
 export default recipeRouter;
