@@ -11,6 +11,31 @@ recipeRouter.route('/get').get((req, res) => {
             .then((recipe: IRecipe | null) => {
                 res.status(200).json(recipe);
             })
+            .catch((err: CallbackError) => {
+                if (err?.name === 'CastError') {
+                    res.status(404).send('The provided id is not valid');
+                }
+                else {
+                    res.status(404).json(err);
+                }
+            });
+    }
+    else if (req.query.random) {
+        Recipe
+            .count()
+            .then((count) => {
+                const random = Math.floor(Math.random() * count);
+
+                Recipe
+                    .findOne()
+                    .skip(random)
+                    .then((recipe) => {
+                        res.status(200).json(recipe);
+                    })
+                    .catch((err) => {
+                        res.status(404).json(err);
+                    });
+            })
             .catch((err) => {
                 res.status(404).json(err);
             });
@@ -21,7 +46,7 @@ recipeRouter.route('/get').get((req, res) => {
             .then((recipes: RecipeDocument[]) => {
                 res.status(200).json(recipes);
             })
-            .catch((err: CallbackError) => {
+            .catch((err) => {
                 res.status(404).json(err);
             });
     }
