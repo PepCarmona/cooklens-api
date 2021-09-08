@@ -15,6 +15,10 @@ interface Step {
   position: number;
   content: string;
 }
+
+interface Tag {
+  value: string;
+}
 export interface IRecipe {
   title: string;
   description?: string;
@@ -37,16 +41,37 @@ const RecipeTimeSchema = new Schema<RecipeTime>(
 
 const IngredientSchema = new Schema<Ingredient>(
     {
-        quantity: Number,
+        quantity: {
+            type: Number,
+            required: true,
+        },
         units: String,
-        name: String,
+        name: {
+            type: String,
+            required: true,
+        }
     }
 );
 
 const StepSchema = new Schema<Step>(
     {
-        position: Number,
-        content: String,
+        position: {
+            type: Number,
+            required: true,
+        },
+        content: {
+            type: String,
+            required: true,
+        }
+    }
+);
+
+const TagSchema = new Schema<Tag>(
+    {
+        value: {
+            type: String,
+            required: true,
+        }
     }
 );
 
@@ -64,7 +89,7 @@ const RecipeSchema = new Schema<IRecipe>(
         },
         ingredients: [IngredientSchema],
         instructions: [StepSchema],
-        tags: [String],
+        tags: [TagSchema],
     }
 );
 
