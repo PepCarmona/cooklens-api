@@ -1,32 +1,33 @@
 import { Document, model, Schema } from 'mongoose';
 
-interface RecipeTime {
+export interface RecipeTime {
   preparation?: number;
   cooking: number;
 }
 
-interface Ingredient {
-  quantity: number;
-  units: string;
+export interface Ingredient {
+  quantity?: number;
+  units?: string;
   name: string;
 }
 
-interface Step {
+export interface Step {
   position: number;
   content: string;
 }
 
-interface Tag {
+export interface Tag {
   value: string;
 }
 export interface IRecipe {
+  url?: string;
   title: string;
   description?: string;
   time: RecipeTime;
   servings: number;
   ingredients: Ingredient[];
   instructions: Step[];
-  tags: string[];
+  tags: Tag[];
 }
 
 const RecipeTimeSchema = new Schema<RecipeTime>(
@@ -41,10 +42,7 @@ const RecipeTimeSchema = new Schema<RecipeTime>(
 
 const IngredientSchema = new Schema<Ingredient>(
     {
-        quantity: {
-            type: Number,
-            required: true,
-        },
+        quantity: Number,
         units: String,
         name: {
             type: String,
@@ -77,6 +75,7 @@ const TagSchema = new Schema<Tag>(
 
 const RecipeSchema = new Schema<IRecipe>(
     {
+        url: String,
         title: {
             type: String,
             required: true,

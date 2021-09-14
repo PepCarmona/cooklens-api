@@ -1,5 +1,8 @@
 import express from 'express';
 import { CallbackError } from 'mongoose';
+import { URL } from 'url';
+import { AllRecipesIntegration } from '../integration/allRecipes';
+import { integratedSites, RecipeIntegration } from '../integration/config';
 import Recipe, { IRecipe, RecipeDocument } from '../models/recipe.model';
 
 const recipeRouter = express.Router();
@@ -110,6 +113,44 @@ recipeRouter.route('/delete').delete((req, res) => {
             .catch((err) => {
                 res.status(404).json(err);
             });
+    }
+});
+
+recipeRouter.route('/import').get((req, res) => {
+    if (!req.query.url) {
+        res.status(400).send('URL query parameter not provided');
+        return;
+    }
+
+    const urlString = String(req.query.url);
+    const url = new URL(urlString);
+    if (!Object.values(integratedSites).includes(url.hostname)) {
+        res.status(400).send('This site is not integrated yet');
+        return;
+    }
+    
+    let recipe: RecipeIntegration | null = null;
+    switch (url.hostname) {
+    case integratedSites.allRecipes:
+        recipe = new AllRecipesIntegration(urlString);
+        recipe.populate()
+            .then(() => {
+                if (recipe === null) {
+                    res.status(400).send('Recipe integration failed');
+                    return;
+                }
+                const DB_recipe = new Recipe(recipe);
+                DB_recipe
+                    .save()
+                    .then((recipe: IRecipe) => {
+                        res.status(200).json(recipe);
+                    })
+                    .catch(() => res.status(400).send('Unable to save item to database'));
+            })
+            .catch((err) => res.status(500).json(err));
+        break;
+    default:
+        res.status(400).send('This site is not integrated yet');
     }
 });
 
