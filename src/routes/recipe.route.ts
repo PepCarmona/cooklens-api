@@ -154,6 +154,10 @@ recipeRouter.route('/import').get((req, res) => {
                             res.status(400).send('Recipe integration failed');
                             return;
                         }
+                        if (!req.query.save) {
+                            res.status(200).json(recipe);
+                            return;
+                        }
                         const DB_recipe = new Recipe(recipe);
                         DB_recipe
                             .save()
@@ -169,6 +173,15 @@ recipeRouter.route('/import').get((req, res) => {
     default:
         res.status(400).send('This site is not integrated yet');
     }
+});
+
+recipeRouter.route('/integrated-sites').get((req, res) => {
+    if (!integratedSites) {
+        res.status(404);
+        return;
+    }
+    
+    res.status(200).json(integratedSites);
 });
 
 export default recipeRouter;
