@@ -162,9 +162,9 @@ recipeRouter.route('/import').get((req, res) => {
                             })
                             .catch(() => res.status(400).send('Unable to save item to database'));
                     })
-                    .catch((err) => res.status(500).json(err));
+                    .catch((err) => res.status(501).json(err));
             })
-            .catch((err) => res.status(500).json(err));
+            .catch((err) => res.status(502).json(err));
         break;
     default:
         res.status(400).send('This site is not integrated yet');
