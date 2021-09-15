@@ -132,6 +132,11 @@ recipeRouter.route('/import').get((req, res) => {
     let recipe: RecipeIntegration | null = null;
     switch (url.hostname) {
     case integratedSites.allRecipes:
+        if (url.pathname.split('/')[1] !== 'recipe') {
+            res.status(400).send('This page does not contain a suported format recipe. ('+url.pathname.split('/')+')');
+            return;
+        }
+
         recipe = new AllRecipesIntegration(urlString);
         recipe.populate()
             .then(() => {
@@ -139,13 +144,25 @@ recipeRouter.route('/import').get((req, res) => {
                     res.status(400).send('Recipe integration failed');
                     return;
                 }
-                const DB_recipe = new Recipe(recipe);
-                DB_recipe
-                    .save()
-                    .then((recipe: IRecipe) => {
-                        res.status(200).json(recipe);
+                Recipe.findOne({ url: recipe.url })
+                    .then((foundRecipe: IRecipe | null) => {
+                        if (foundRecipe !== null) {
+                            res.status(300).send('There already exists a recipe imported from this same url');
+                            return;
+                        }
+                        if (recipe === null) {
+                            res.status(400).send('Recipe integration failed');
+                            return;
+                        }
+                        const DB_recipe = new Recipe(recipe);
+                        DB_recipe
+                            .save()
+                            .then((recipe: IRecipe) => {
+                                res.status(200).json(recipe);
+                            })
+                            .catch(() => res.status(400).send('Unable to save item to database'));
                     })
-                    .catch(() => res.status(400).send('Unable to save item to database'));
+                    .catch((err) => res.status(500).json(err));
             })
             .catch((err) => res.status(500).json(err));
         break;

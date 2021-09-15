@@ -82,6 +82,10 @@ export class AllRecipesIntegration implements RecipeIntegration {
             page.$$eval(allRecipes.recipeInstructions, (X) => X.map((x) => x.textContent)),
         ]);
 
+        if (!title) {
+            throw new Error('Could not format recipe from this url. Title tag is missing.');
+        }
+
         this.title = title ?? '';
 
         this.description = description ?? '';
