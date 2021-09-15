@@ -164,7 +164,12 @@ recipeRouter.route('/import').get((req, res) => {
                     })
                     .catch((err) => res.status(501).json(err));
             })
-            .catch((err) => res.status(502).json(err));
+            .catch((err) => res.status(502).json({
+                queryUrl: req.query.url,
+                urlString,
+                recipe,
+                err
+            }));
         break;
     default:
         res.status(400).send('This site is not integrated yet');
