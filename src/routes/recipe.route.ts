@@ -19,7 +19,7 @@ recipeRouter.route('/get').get((req, res) => {
                     res.status(404).send('The provided id is not valid');
                 }
                 else {
-                    res.status(404).json(err);
+                    res.status(404).send(err);
                 }
             });
     }
@@ -36,11 +36,11 @@ recipeRouter.route('/get').get((req, res) => {
                         res.status(200).json(recipe);
                     })
                     .catch((err) => {
-                        res.status(404).json(err);
+                        res.status(404).send(err);
                     });
             })
             .catch((err) => {
-                res.status(404).json(err);
+                res.status(404).send(err);
             });
     }
     else {
@@ -50,7 +50,7 @@ recipeRouter.route('/get').get((req, res) => {
                 res.status(200).json(recipes);
             })
             .catch((err) => {
-                res.status(404).json(err);
+                res.status(404).send(err);
             });
     }
 });
@@ -92,7 +92,7 @@ recipeRouter.route('/update').put((req, res) => {
             }
         })
         .catch((err) => {
-            res.status(404).json(err);
+            res.status(404).send(err);
         });
 });
 
@@ -113,7 +113,7 @@ recipeRouter.route('/delete').delete((req, res) => {
             }
         })
         .catch((err) => {
-            res.status(404).json(err);
+            res.status(404).send(err);
         });
 });
 
@@ -124,7 +124,16 @@ recipeRouter.route('/import').get((req, res) => {
     }
 
     const urlString = String(req.query.url);
-    const url = new URL(urlString);
+    let url = null;
+
+    try {
+        url = new URL(urlString);
+    }
+    catch {
+        res.status(500).send('URL could not be parsed');
+        return;
+    }
+     
     if (!Object.values(integratedSites).includes(url.hostname)) {
         res.status(400).send('This site is not integrated yet');
         return;
@@ -134,7 +143,7 @@ recipeRouter.route('/import').get((req, res) => {
     switch (url.hostname) {
     case integratedSites.allRecipes:
         if (url.pathname.split('/')[1] !== 'recipe') {
-            res.status(400).send('This page does not contain a suported format recipe. ('+url.pathname.split('/')+')');
+            res.status(400).send('This page does not contain a suported format recipe.');
             return;
         }
 
@@ -167,9 +176,9 @@ recipeRouter.route('/import').get((req, res) => {
                             })
                             .catch(() => res.status(400).send('Unable to save item to database'));
                     })
-                    .catch((err) => res.status(500).json(err));
+                    .catch((err) => res.status(500).send(err));
             })
-            .catch((err) => res.status(500).json(err));
+            .catch(() => res.status(500).send('Could not format recipe from this url. Title tag is missing.'));
         break;
     default:
         res.status(400).send('This site is not integrated yet');
