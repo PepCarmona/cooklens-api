@@ -104,6 +104,7 @@ export class AllRecipesIntegration implements RecipeIntegration {
         ingredients.forEach(
             (ingredient) => 
                 this.ingredients.push({
+                    quantity: 0,
                     name: ingredient!
                 })
         );
