@@ -21,13 +21,15 @@ function paginate(query: any, req: any, res: any) {
         .then((recipes: RecipeDocument[]) => {
             const next = recipes.length === limit + 1;
 
-            if (limit !== 0) {
+            if (limit !== 0 && next) { 
                 recipes.pop();
             }
 
             res.status(200).json({
                 recipes,
                 next,
+                limit: limit === 0 ? limit  : limit + 1,
+                length: recipes.length,
             });
         })
         .catch((err : CallbackError) => {
