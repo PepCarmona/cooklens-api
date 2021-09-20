@@ -55,6 +55,41 @@ recipeRouter.route('/get').get((req, res) => {
     }
 });
 
+recipeRouter.route('/search').get((req, res) => {
+    const searchType = req.query.searchType;
+    const searchText = req.query.searchText;
+
+    let filter = {};
+
+    let regex = new RegExp('.*');
+
+    try {
+        regex = new RegExp(searchText?.toString() || '.*', 'i');
+    } catch (error) {
+        res.status(400).send(error);
+    }
+    
+    switch (searchType) {
+    case 'title':
+        filter = { title: regex };
+        break;
+    case 'ingredient':
+        filter = { 'ingredients.name': regex };
+        break;
+    case 'tag':
+        filter = { 'tags.value': regex };
+        break;
+    }
+    Recipe
+        .find(filter)
+        .then((recipes: RecipeDocument[]) => {
+            res.status(200).json(recipes);
+        })
+        .catch((err) => {
+            res.status(404).send(err);
+        });
+});
+
 recipeRouter.route('/add').post((req, res) => {
     const recipe = new Recipe(req.body);
 
