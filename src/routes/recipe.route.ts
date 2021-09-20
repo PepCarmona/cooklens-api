@@ -6,6 +6,25 @@ import { integratedSites, RecipeIntegration } from '../integration/config';
 import Recipe, { IRecipe, RecipeDocument } from '../models/recipe.model';
 
 const recipeRouter = express.Router();
+const defaultLimitPerPage = 0;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function paginate(query: any, req: any, res: any) {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || defaultLimitPerPage;
+    const skip = (page - 1) * limit;
+    
+    query
+        .sort({ _id: 1 })
+        .limit(limit)
+        .skip(skip)
+        .then((recipes: RecipeDocument[]) => {
+            res.status(200).json(recipes);
+        })
+        .catch((err : CallbackError) => {
+            res.status(404).send(err);
+        });
+}
 
 recipeRouter.route('/get').get((req, res) => {
     if (req.query.id) {
@@ -44,14 +63,7 @@ recipeRouter.route('/get').get((req, res) => {
             });
     }
     else {
-        Recipe
-            .find()
-            .then((recipes: RecipeDocument[]) => {
-                res.status(200).json(recipes);
-            })
-            .catch((err) => {
-                res.status(404).send(err);
-            });
+        paginate(Recipe.find(), req, res);
     }
 });
 
@@ -80,14 +92,7 @@ recipeRouter.route('/search').get((req, res) => {
         filter = { 'tags.value': regex };
         break;
     }
-    Recipe
-        .find(filter)
-        .then((recipes: RecipeDocument[]) => {
-            res.status(200).json(recipes);
-        })
-        .catch((err) => {
-            res.status(404).send(err);
-        });
+    paginate(Recipe.find(filter), req, res);
 });
 
 recipeRouter.route('/add').post((req, res) => {
