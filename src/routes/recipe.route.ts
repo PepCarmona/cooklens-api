@@ -16,10 +16,19 @@ function paginate(query: any, req: any, res: any) {
     
     query
         .sort({ _id: 1 })
-        .limit(limit)
+        .limit(limit === 0 ? limit  : limit + 1)
         .skip(skip)
         .then((recipes: RecipeDocument[]) => {
-            res.status(200).json(recipes);
+            const next = recipes.length === limit + 1;
+
+            if (limit !== 0) {
+                recipes.pop();
+            }
+
+            res.status(200).json({
+                recipes,
+                next,
+            });
         })
         .catch((err : CallbackError) => {
             res.status(404).send(err);
