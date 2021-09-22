@@ -26,6 +26,8 @@ export class AllRecipesIntegration implements RecipeIntegration {
     ingredients: Ingredient[] = [];
     instructions: Step[] = [];
     tags: Tag[] = [];
+    images: string[] = [];
+    rating = 0;
 
     constructor(url?: string) {
         if (url) {

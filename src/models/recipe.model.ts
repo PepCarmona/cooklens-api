@@ -28,6 +28,8 @@ export interface IRecipe {
   ingredients: Ingredient[];
   instructions: Step[];
   tags: Tag[];
+  images?: string[];
+  rating: number;
 }
 
 const RecipeTimeSchema = new Schema<RecipeTime>(
@@ -89,6 +91,8 @@ const RecipeSchema = new Schema<IRecipe>(
         ingredients: [IngredientSchema],
         instructions: [StepSchema],
         tags: [TagSchema],
+        images: [String],
+        rating: Number,
     }
 );
 
