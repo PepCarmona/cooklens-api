@@ -1,6 +1,7 @@
 import express from 'express';
 import { compare, hash } from 'bcryptjs';
 import User, { IUser } from '../models/user.model';
+import { sign, verify } from 'jsonwebtoken';
 
 const authRouter = express.Router();
 
@@ -15,7 +16,7 @@ authRouter.route('/signup').post((req, res) => {
         return;
     }
 
-    // TODO: use next() instead of nesting Promise then
+    // TODO: use middlewares
     User
         .findOne({ username: req.body.username })
         .then((foundUser: IUser | null) => {
@@ -39,7 +40,12 @@ authRouter.route('/signup').post((req, res) => {
                     user
                         .save()
                         .then((user: IUser) => {
-                            res.status(200).json(user);
+                            sign({ user }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
+                                res.status(200).json({
+                                    user,
+                                    token
+                                });
+                            });
                         })
                         .catch((err) => res.status(400).send(err));
                 })
@@ -67,13 +73,37 @@ authRouter.route('/signin').post((req, res) => {
                 return;
             }
 
-            res.status(200).json(user);
+            sign({ user }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
+                if (err) {
+                    res.status(500).send(err);
+                    return;
+                }
+
+                res.status(200).json({
+                    user,
+                    token
+                });
+            });
         })
         .catch((err) => res.status(500).send(err));
 });
 
-authRouter.route('/admin').get((req, res) => {
-    res.send('Restricted to only admin');
+authRouter.route('/restricted').get((req, res) => {
+    const token = req.headers['x-access-token'] as string | undefined;
+
+    if (!token) {
+        res.status(400).send('No token provided');
+        return;
+    }
+
+    verify(token, process.env.JWTSECRET!, (err, decoded) => {
+        if (err) {
+            res.status(500).send('Unable to verify token');
+            return;
+        }
+
+        res.status(200).json(decoded);
+    });
 });
 
 export default authRouter;
