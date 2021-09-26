@@ -3,6 +3,7 @@ import express from 'express';
 import { connectDB } from './helpers/db';
 import dotenv from 'dotenv';
 import recipeRouter from './routes/recipe.route';
+import authRouter from './routes/auth.route';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -26,6 +27,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/recipes', recipeRouter);
+app.use('/auth', authRouter);
 
 app.listen(PORT, () =>
     console.log(`Server is running on http://localhost:${PORT}`)

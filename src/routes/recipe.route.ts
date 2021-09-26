@@ -107,12 +107,12 @@ recipeRouter.route('/search').get((req, res) => {
 });
 
 recipeRouter.route('/add').post((req, res) => {
-    const recipe = new Recipe(req.body);
-
     if (!req.body || Object.keys(req.body).length === 0) {
         res.status(404).send('Cannot save empty objects');
         return;
     }
+    
+    const recipe = new Recipe(req.body);
     
     recipe
         .save()
