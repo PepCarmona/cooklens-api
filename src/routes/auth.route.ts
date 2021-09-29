@@ -55,37 +55,63 @@ authRouter.route('/signup').post((req, res) => {
 });
 
 authRouter.route('/signin').post((req, res) => {
-    User
-        .findOne({ username: req.body.username })
-        .then(async (user: IUser | null) => {
-            if (user === null) {
-                res.status(404).send('User not found');
+    if (req.body.token) {
+        const token = req.body.token;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        verify(token, process.env.JWTSECRET!, (err: any, decoded: any) => {
+            if (err) {
+                res.status(500).send('Unable to verify token');
                 return;
             }
-            
-            const isValidPassword = await compare(
-                req.body.password,
-                user.password
-            );
+    
+            User
+                .findById(decoded.user._id)
+                .then((user: IUser | null) => {
+                    if (user === null) {
+                        res.status(404);
+                        return;
+                    }
 
-            if (!isValidPassword) {
-                res.status(400).send('Invalid password');
-                return;
-            }
-
-            sign({ user }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
-                if (err) {
+                    res.status(200).json(user);
+                })
+                .catch((err) => {
                     res.status(500).send(err);
+                });
+        });
+    } else {
+        User
+            .findOne({ username: req.body.username })
+            .then(async (user: IUser | null) => {
+                if (user === null) {
+                    res.status(404).send('User not found');
+                    return;
+                }
+                
+                const isValidPassword = await compare(
+                    req.body.password,
+                    user.password
+                );
+
+                if (!isValidPassword) {
+                    res.status(400).send('Invalid password');
                     return;
                 }
 
-                res.status(200).json({
-                    user,
-                    token
+                sign({ user }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
+                    if (err) {
+                        res.status(500).send(err);
+                        return;
+                    }
+
+                    res.status(200).json({
+                        user,
+                        token
+                    });
                 });
-            });
-        })
-        .catch((err) => res.status(500).send(err));
+            })
+            .catch((err) => res.status(500).send(err));
+    }
 });
 
 authRouter.route('/restricted').get((req, res) => {
