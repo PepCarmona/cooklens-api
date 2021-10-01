@@ -80,16 +80,17 @@ recipeRouter.route('/get').get((req, res) => {
 
 recipeRouter.route('/search').get((req, res) => {
     const searchType = req.query.searchType;
-    const searchText = req.query.searchText;
+    const searchText = req.query.searchText || '';
 
     let filter = {};
 
     let regex = new RegExp('.*');
 
     try {
-        regex = new RegExp(searchText?.toString() || '.*', 'i');
+        regex = new RegExp(searchText.toString().length > 0 ? searchText.toString() : '.*', 'i');
     } catch (error) {
         res.status(400).send(error);
+        return;
     }
     
     switch (searchType) {
@@ -111,7 +112,7 @@ recipeRouter.route('/add').post((req, res) => {
         res.status(404).send('Cannot save empty objects');
         return;
     }
-    
+
     const recipe = new Recipe(req.body);
     
     recipe
@@ -175,7 +176,7 @@ recipeRouter.route('/import').get((req, res) => {
     }
 
     const urlString = String(req.query.url);
-    let url = null;
+    let url: URL | null = null;
 
     try {
         url = new URL(urlString);
@@ -184,15 +185,15 @@ recipeRouter.route('/import').get((req, res) => {
         res.status(500).send('URL could not be parsed');
         return;
     }
-     
-    if (!Object.values(integratedSites).includes(url.hostname)) {
+
+    if (!integratedSites.some((site) => site.url === url!.hostname)) {
         res.status(400).send('This site is not integrated yet');
         return;
     }
     
     let recipe: RecipeIntegration | null = null;
     switch (url.hostname) {
-    case integratedSites.allRecipes:
+    case integratedSites[0].url:
         if (url.pathname.split('/')[1] !== 'recipe') {
             res.status(400).send('This page does not contain a suported format recipe.');
             return;

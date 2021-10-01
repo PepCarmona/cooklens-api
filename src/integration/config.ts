@@ -17,6 +17,9 @@ export interface RecipeIntegration extends IRecipe {
     populate(): Promise<void>;
 }
 
-export const integratedSites = {
-    allRecipes: 'www.allrecipes.com'
-};
+export const integratedSites = [
+    {
+        name: 'allRecipes',
+        url: 'www.allrecipes.com',
+    }
+];
