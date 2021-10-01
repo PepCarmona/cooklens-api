@@ -64,6 +64,11 @@ authRouter.route('/signin').post((req, res) => {
                 res.status(500).send('Unable to verify token');
                 return;
             }
+
+            if (decoded.exp <= Date.now() / 1000) {
+                res.status(401).json('Token expired');
+                return;
+            }
     
             User
                 .findById(decoded.user._id)
