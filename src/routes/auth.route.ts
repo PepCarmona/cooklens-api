@@ -42,7 +42,8 @@ authRouter.route('/signup').post((req, res) => {
                         .then((user: IUser) => {
                             sign({ user }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
                                 res.status(200).json({
-                                    user,
+                                    // @ts-ignore
+                                    user: {...user._doc, password:undefined},
                                     token
                                 });
                             });
@@ -78,7 +79,8 @@ authRouter.route('/signin').post((req, res) => {
                         return;
                     }
 
-                    res.status(200).json(user);
+                    // @ts-ignore
+                    res.status(200).json({...user._doc, password: undefined});
                 })
                 .catch((err) => {
                     res.status(500).send(err);
@@ -110,7 +112,8 @@ authRouter.route('/signin').post((req, res) => {
                     }
 
                     res.status(200).json({
-                        user,
+                        // @ts-ignore
+                        user: {...user._doc, password:undefined},
                         token
                     });
                 });
