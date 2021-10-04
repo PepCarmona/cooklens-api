@@ -1,41 +1,12 @@
 import express from 'express';
 import { CallbackError } from 'mongoose';
 import { URL } from 'url';
+import { paginate } from '../helpers/pagination';
 import { AllRecipesIntegration } from '../integration/allRecipes';
 import { integratedSites, RecipeIntegration } from '../integration/config';
-import Recipe, { IRecipe, RecipeDocument } from '../models/recipe.model';
+import Recipe, { IRecipe } from '../models/recipe.model';
 
 const recipeRouter = express.Router();
-const defaultLimitPerPage = 0;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function paginate(query: any, req: any, res: any) {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || defaultLimitPerPage;
-    const skip = (page - 1) * limit;
-    
-    query
-        .sort({ _id: 1 })
-        .limit(limit === 0 ? limit  : limit + 1)
-        .skip(skip)
-        .then((recipes: RecipeDocument[]) => {
-            const next = recipes.length === limit + 1;
-
-            if (limit !== 0 && next) { 
-                recipes.pop();
-            }
-
-            res.status(200).json({
-                recipes,
-                next,
-                limit: limit === 0 ? limit  : limit + 1,
-                length: recipes.length,
-            });
-        })
-        .catch((err : CallbackError) => {
-            res.status(404).send(err);
-        });
-}
 
 recipeRouter.route('/get').get((req, res) => {
     if (req.query.id) {
