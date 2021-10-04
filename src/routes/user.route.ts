@@ -42,39 +42,24 @@ userRouter.route('/removeFavRecipe').put((req: RequestWithUserDecodedToken, res)
 });
 
 userRouter.route('/getFavRecipes').get((req: RequestWithUserDecodedToken, res) => {
+    const page = req.query.page ? parseInt(req.query.page.toString()) : 1;
+    const limit = req.query.limit ? parseInt(req.query.limit.toString()) : defaultLimitPerPage;
+    
     const user = req.decoded!.user;
+    User
+        .findById(user._id)
+        .populate('favRecipes')
+        .then((user: IUser | null) => {
+            if (!user) {
+                res.status(404).send('Document with provided id not found');
+                return;
+            }
 
-    if (req.query.onlyIds) {
-        User
-            .findById(user._id)
-            .then((user: IUser | null) => {
-                if (!user) {
-                    res.status(404).send('Document with provided id not found');
-                    return;
-                }
+            const favRecipes = paginateList(user.favRecipes as IRecipe[], page, limit);
 
-                res.status(200).json(user.favRecipes);
-            })
-            .catch((err) => res.status(500).send(err));
-    } else {
-        const page = req.query.page ? parseInt(req.query.page.toString()) : 1;
-        const limit = req.query.limit ? parseInt(req.query.limit.toString()) : defaultLimitPerPage;
-
-        User
-            .findById(user._id)
-            .populate('favRecipes')
-            .then((user: IUser | null) => {
-                if (!user) {
-                    res.status(404).send('Document with provided id not found');
-                    return;
-                }
-
-                const favRecipes = paginateList(user.favRecipes as IRecipe[], page, limit);
-
-                res.status(200).json(favRecipes);
-            })
-            .catch((err) => res.status(500).send(err));
-    }
+            res.status(200).json(favRecipes);
+        })
+        .catch((err) => res.status(500).send(err));
 });
 
 export default userRouter;
