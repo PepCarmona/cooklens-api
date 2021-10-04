@@ -32,6 +32,10 @@ export interface IRecipe {
   rating: number;
 }
 
+export interface IRecipeWithId extends IRecipe {
+    _id: Schema.Types.ObjectId;
+}
+
 const RecipeTimeSchema = new Schema<RecipeTime>(
     {
         preparation: Number,
