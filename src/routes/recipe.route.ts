@@ -12,6 +12,7 @@ recipeRouter.route('/get').get((req, res) => {
     if (req.query.id) {
         Recipe
             .findById(req.query.id)
+            .populate('author')
             .then((recipe: IRecipe | null) => {
                 res.status(200).json(recipe);
             })
@@ -33,6 +34,7 @@ recipeRouter.route('/get').get((req, res) => {
                 Recipe
                     .findOne()
                     .skip(random)
+                    .populate('author')
                     .then((recipe) => {
                         res.status(200).json(recipe);
                     })

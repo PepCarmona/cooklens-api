@@ -1,4 +1,5 @@
 import { Document, model, Schema } from 'mongoose';
+import { IUser } from './user.model';
 
 export interface RecipeTime {
   preparation?: number;
@@ -30,6 +31,7 @@ export interface IRecipe {
   tags: Tag[];
   images?: string[];
   rating: number;
+  author?: Schema.Types.ObjectId[] | IUser[]
 }
 
 export interface IRecipeWithId extends IRecipe {
@@ -97,6 +99,10 @@ const RecipeSchema = new Schema<IRecipe>(
         tags: [TagSchema],
         images: [String],
         rating: Number,
+        author: {
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        }
     }
 );
 
