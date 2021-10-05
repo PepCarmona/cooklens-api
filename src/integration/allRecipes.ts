@@ -15,6 +15,7 @@ const allRecipes: SiteIntegration = {
         '.two-subcol-content-wrapper:last-child > .recipe-meta-item:nth-child(1) > .recipe-meta-item-body',
     recipeIngredients: '.ingredients-item-name',
     recipeInstructions: '.instructions-section-item p',
+    images: '.lazy-image[data-main-recipe] > .inner-container > img',
 };
 
 export class AllRecipesIntegration implements RecipeIntegration {
@@ -59,7 +60,8 @@ export class AllRecipesIntegration implements RecipeIntegration {
             cookTime,
             servings,
             ingredients,
-            instructions
+            instructions,
+            images,
         ] = await Promise.all([
             // Title
             page.$eval(allRecipes.recipeTitle, (x) => x.textContent),
@@ -87,6 +89,9 @@ export class AllRecipesIntegration implements RecipeIntegration {
 
             // Instructions
             page.$$eval(allRecipes.recipeInstructions, (X) => X.map((x) => x.textContent)),
+
+            // Image
+            page.$$eval(allRecipes.images!, (X) => X.map((x) => x.getAttribute('src')!)),
         ]);
 
         if (!title) {
@@ -118,6 +123,8 @@ export class AllRecipesIntegration implements RecipeIntegration {
                     content: step ?? '' 
                 })
         );
+
+        this.images = images;
 
         await browser.close();
     }

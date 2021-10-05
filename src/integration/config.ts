@@ -2,7 +2,7 @@ import { IRecipe } from '../models/recipe.model';
 
 export interface SiteIntegration {
     url: string;
-    search?: string;
+    // search?: string;
     recipeTitle: string;
     recipeDescription?: string;
     recipePrepTime?: string;
@@ -11,6 +11,7 @@ export interface SiteIntegration {
     recipeIngredients: string;
     recipeInstructions: string;
     recipeTags?: string;
+    images?: string;
 }
 
 export interface RecipeIntegration extends IRecipe {
