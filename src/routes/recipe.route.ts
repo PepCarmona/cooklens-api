@@ -2,8 +2,8 @@ import express from 'express';
 import { CallbackError } from 'mongoose';
 import { URL } from 'url';
 import { paginate } from '../helpers/pagination';
-import { AllRecipesIntegration } from '../integration/allRecipes';
-import { integratedSites, RecipeIntegration } from '../integration/config';
+import { RecipeIntegration } from '../integration';
+import { integratedSites } from '../integration/sites';
 import Recipe, { IRecipe } from '../models/recipe.model';
 
 const recipeRouter = express.Router();
@@ -159,55 +159,42 @@ recipeRouter.route('/import').get((req, res) => {
         return;
     }
 
-    if (!integratedSites.some((site) => site.url === url!.hostname)) {
+    const site = integratedSites.find((site) => site.url === url?.hostname);
+
+    if (!site) {
         res.status(400).send('This site is not integrated yet');
         return;
     }
     
-    let recipe: RecipeIntegration | null = null;
-    switch (url.hostname) {
-    case integratedSites[0].url:
-        if (url.pathname.split('/')[1] !== 'recipe') {
-            res.status(400).send('This page does not contain a suported format recipe.');
-            return;
-        }
+    const recipe = new RecipeIntegration(urlString);
 
-        recipe = new AllRecipesIntegration(urlString);
-        recipe.populate()
-            .then(() => {
-                if (recipe === null) {
-                    res.status(400).send('Recipe integration failed');
-                    return;
-                }
-                Recipe.findOne({ url: recipe.url })
-                    .then((foundRecipe: IRecipe | null) => {
-                        if (foundRecipe !== null) {
-                            res.status(300).send('There already exists a recipe imported from this same url');
-                            return;
-                        }
-                        if (recipe === null) {
-                            res.status(400).send('Recipe integration failed');
-                            return;
-                        }
-                        if (!req.query.save) {
+    recipe.populate(site.integration)
+        .then(() => {
+            if (recipe === null) {
+                res.status(400).send('Recipe integration failed');
+                return;
+            }
+            Recipe.findOne({ url: recipe.url })
+                .then((foundRecipe: IRecipe | null) => {
+                    if (foundRecipe !== null) {
+                        res.status(300).send('There already exists a recipe imported from this same url');
+                        return;
+                    }
+                    if (!req.query.save) {
+                        res.status(200).json(recipe);
+                        return;
+                    }
+                    const DB_recipe = new Recipe(recipe);
+                    DB_recipe
+                        .save()
+                        .then((recipe: IRecipe) => {
                             res.status(200).json(recipe);
-                            return;
-                        }
-                        const DB_recipe = new Recipe(recipe);
-                        DB_recipe
-                            .save()
-                            .then((recipe: IRecipe) => {
-                                res.status(200).json(recipe);
-                            })
-                            .catch(() => res.status(400).send('Unable to save item to database'));
-                    })
-                    .catch((err) => res.status(500).send(err));
-            })
-            .catch(() => res.status(500).send('Could not format recipe from this url. Title tag is missing.'));
-        break;
-    default:
-        res.status(400).send('This site is not integrated yet');
-    }
+                        })
+                        .catch(() => res.status(400).send('Unable to save item to database'));
+                })
+                .catch(() => res.status(500).send('Recipe integration failed. Could not populate provided URL'));
+        })
+        .catch((err) => res.status(500).send(err));
 });
 
 recipeRouter.route('/integrated-sites').get((req, res) => {
