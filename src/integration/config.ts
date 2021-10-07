@@ -9,6 +9,7 @@ export interface SiteIntegration {
     recipeCookTime: string;
     recipeServings?: string;
     recipeIngredients: string;
+    recipeIngredientsQuantity?: string;
     recipeInstructions: string;
     recipeTags?: string;
     images?: string;

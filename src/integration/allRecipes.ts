@@ -19,21 +19,19 @@ const allRecipes: SiteIntegration = {
 };
 
 export class AllRecipesIntegration implements RecipeIntegration {
-    url: string = allRecipes.url;
+    url!: string;
     title!: string;
     description?: string;
     time!: RecipeTime;
     servings = 4;
-    ingredients: Ingredient[] = [];
-    instructions: Step[] = [];
-    tags: Tag[] = [];
-    images: string[] = [];
+    ingredients!: Ingredient[];
+    instructions!: Step[];
+    tags!: Tag[];
+    images!: string[];
     rating = 0;
 
-    constructor(url?: string) {
-        if (url) {
-            this.url = url;
-        }
+    constructor(url: string) {
+        this.url = url;
 
         this.title = '';
         this.time = {
@@ -61,6 +59,8 @@ export class AllRecipesIntegration implements RecipeIntegration {
             servings,
             ingredients,
             instructions,
+            instructionsQuantity,
+            tags,
             images,
         ] = await Promise.all([
             // Title
@@ -90,8 +90,20 @@ export class AllRecipesIntegration implements RecipeIntegration {
             // Instructions
             page.$$eval(allRecipes.recipeInstructions, (X) => X.map((x) => x.textContent)),
 
+            // Instructions Quantity
+            allRecipes.recipeIngredientsQuantity
+                ? page.$$eval(allRecipes.recipeIngredientsQuantity, (X) => X.map(x => x.textContent!))
+                : [],
+
+            // Tags
+            allRecipes.recipeTags
+                ? page.$$eval(allRecipes.recipeTags, (X) => X.map((x) => x.textContent!))
+                : [],
+
             // Image
-            page.$$eval(allRecipes.images!, (X) => X.map((x) => x.getAttribute('src')!)),
+            allRecipes.images
+                ? page.$$eval(allRecipes.images!, (X) => X.map((x) => x.getAttribute('src')!))
+                : [],
         ]);
 
         if (!title) {
@@ -108,21 +120,27 @@ export class AllRecipesIntegration implements RecipeIntegration {
 
         this.servings = parseInt(servings!);
 
-        ingredients.forEach(
-            (ingredient) => 
-                this.ingredients.push({
-                    quantity: 0,
+        this.ingredients = ingredients.some((ingredient) => ingredient === null)
+            ? []
+            : ingredients.map((ingredient, index) => {
+                return {
+                    quantity: instructionsQuantity[index] ? parseInt(instructionsQuantity[index]) : 0,
                     name: ingredient!
-                })
-        );
+                };
+            });
 
-        instructions.forEach(
-            (step, index) => 
-                this.instructions.push({ 
-                    position: index + 1, 
-                    content: step ?? '' 
-                })
-        );
+        this.instructions = instructions.some((step) => step === null)
+            ? []
+            : instructions.map((step, index) => {
+                return {
+                    position: index + 1,
+                    content: step!
+                };
+            });
+
+        this.tags = tags.map((tag) => {
+            return { value: tag };
+        });
 
         this.images = images;
 
