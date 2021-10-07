@@ -51,98 +51,115 @@ export class AllRecipesIntegration implements RecipeIntegration {
 
         await page.goto(this.url);
 
-        const [
-            title, 
-            description,
-            prepTime,
-            cookTime,
-            servings,
-            ingredients,
-            instructions,
-            instructionsQuantity,
-            tags,
-            images,
-        ] = await Promise.all([
+        const stringTime: {
+            preparation: string | null;
+            cooking: string | null;
+        } = {
+            preparation: '',
+            cooking: '',
+        };
+
+        let stringServings: string | null = null;
+
+        let stringQuantity: (string | null)[] = [];
+        
+        await Promise.all([
             // Title
-            page.$eval(allRecipes.recipeTitle, (x) => x.textContent),
+            page.$eval(allRecipes.recipeTitle, (x) => x.textContent)
+                .then((title) => {
+                    if (!title) {
+                        throw new Error('Could not import recipe from this url. Title tag is missing.');
+                    }
+            
+                    this.title = title ?? '';
+                }),
 
             // Description
             allRecipes.recipeDescription 
-                ? page.$eval(allRecipes.recipeDescription, (x) => x.textContent) 
-                : '',
+                ? page.$eval(allRecipes.recipeDescription, (x) => x.textContent)
+                    .then((description) => this.description = description ?? '')
+                : this.description = '',
 
             // Preparation Time
             allRecipes.recipePrepTime 
-                ? page.$eval(allRecipes.recipePrepTime, (x) => x.textContent) 
-                : '',
+                ? page.$eval(allRecipes.recipePrepTime, (x) => x.textContent)
+                    .then((prepTime) => stringTime.preparation = prepTime)
+                : stringTime.preparation = '',
 
             // Cooking Time
-            page.$eval(allRecipes.recipeCookTime, (x) => x.textContent),
+            page.$eval(allRecipes.recipeCookTime, (x) => x.textContent)
+                .then((cookingTime) => stringTime.cooking = cookingTime)
+            ,
 
             // Servings
             allRecipes.recipeServings
                 ? page.$eval(allRecipes.recipeServings, (x) => x.textContent)
-                : '4',
+                    .then((servings) => stringServings = servings)
+                : stringServings = '4',
 
             // Ingredients
-            page.$$eval(allRecipes.recipeIngredients, (X) => X.map((x) => x.textContent)),
+            page.$$eval(allRecipes.recipeIngredients, (X) => X.map((x) => x.textContent))
+                .then((ingredients) => 
+                    this.ingredients = ingredients.some((ingredient) => ingredient === null)
+                        ? []
+                        : ingredients.map((ingredient) => {
+                            return {
+                                quantity: 0,
+                                name: ingredient!
+                            };
+                        })
+                ),
 
-            // Instructions
-            page.$$eval(allRecipes.recipeInstructions, (X) => X.map((x) => x.textContent)),
-
-            // Instructions Quantity
+            // Ingredients Quantity
             allRecipes.recipeIngredientsQuantity
                 ? page.$$eval(allRecipes.recipeIngredientsQuantity, (X) => X.map(x => x.textContent!))
-                : [],
+                    .then((quantity) => stringQuantity = quantity)
+                : stringQuantity = [],
+
+            // Instructions
+            page.$$eval(allRecipes.recipeInstructions, (X) => X.map((x) => x.textContent))
+                .then((instructions) => 
+                    this.instructions = instructions.some((step) => step === null)
+                        ? []
+                        : instructions.map((step, index) => {
+                            return {
+                                position: index + 1,
+                                content: step!
+                            };
+                        })
+                ),
 
             // Tags
             allRecipes.recipeTags
                 ? page.$$eval(allRecipes.recipeTags, (X) => X.map((x) => x.textContent!))
-                : [],
+                    .then((tags) => 
+                        this.tags = tags.map((tag) => {
+                            return { value: tag };
+                        })
+                    )
+                : this.tags = [],
 
             // Image
             allRecipes.images
                 ? page.$$eval(allRecipes.images!, (X) => X.map((x) => x.getAttribute('src')!))
-                : [],
+                    .then((images) => this.images = images)
+                : this.images = [],
         ]);
 
-        if (!title) {
-            throw new Error('Could not format recipe from this url. Title tag is missing.');
-        }
+        this.time = {
+            preparation: getTimeFromString(stringTime.preparation),
+            cooking: getTimeFromString(stringTime.cooking),
+        };
 
-        this.title = title ?? '';
+        this.servings = stringServings ? parseInt(stringServings) : 4;
 
-        this.description = description ?? '';
-
-        this.time.preparation = getTimeFromString(prepTime);
-
-        this.time.cooking = getTimeFromString(cookTime);
-
-        this.servings = parseInt(servings!);
-
-        this.ingredients = ingredients.some((ingredient) => ingredient === null)
-            ? []
-            : ingredients.map((ingredient, index) => {
-                return {
-                    quantity: instructionsQuantity[index] ? parseInt(instructionsQuantity[index]) : 0,
-                    name: ingredient!
-                };
-            });
-
-        this.instructions = instructions.some((step) => step === null)
-            ? []
-            : instructions.map((step, index) => {
-                return {
-                    position: index + 1,
-                    content: step!
-                };
-            });
-
-        this.tags = tags.map((tag) => {
-            return { value: tag };
-        });
-
-        this.images = images;
+        
+        this.ingredients.map(
+            (ingredient, index) => 
+                ingredient.quantity = stringQuantity[index] 
+                    ? parseInt(stringQuantity[index]!) 
+                    : 0
+        );
 
         await browser.close();
     }
