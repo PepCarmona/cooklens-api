@@ -146,7 +146,9 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 
         this.time = {
             preparation: getTimeFromString(stringTime.preparation, site),
-            cooking: getTimeFromString(stringTime.cooking, site),
+            cooking: site.name === 'delish'
+                ? getTimeFromString(stringTime.cooking, site) - getTimeFromString(stringTime.preparation, site)
+                : getTimeFromString(stringTime.cooking, site),
         };
 
         this.servings = stringServings ? parseInt(stringServings) : 4;
