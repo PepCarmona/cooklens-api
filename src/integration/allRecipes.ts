@@ -1,4 +1,4 @@
-import { SiteIntegration } from '.';
+import { SiteIntegration } from './sites';
 
 export const allRecipes: SiteIntegration = {
     url: 'https://www.allrecipes.com/',

@@ -168,7 +168,7 @@ recipeRouter.route('/import').get((req, res) => {
     
     const recipe = new RecipeIntegration(urlString);
 
-    recipe.populate(site.integration)
+    recipe.populate(site)
         .then(() => {
             if (recipe === null) {
                 res.status(400).send('Recipe integration failed');
@@ -194,7 +194,7 @@ recipeRouter.route('/import').get((req, res) => {
                 })
                 .catch(() => res.status(500).send('Recipe integration failed. Could not populate provided URL'));
         })
-        .catch((err) => res.status(500).send(err));
+        .catch(() => res.status(500).send('Recipe integration failed. Could not populate provided URL'));
 });
 
 recipeRouter.route('/integrated-sites').get((req, res) => {

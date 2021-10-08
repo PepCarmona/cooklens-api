@@ -1,24 +1,10 @@
 import { Ingredient, IRecipe, RecipeTime, Step, Tag } from '../models/recipe.model';
 import { getTimeFromString } from '../helpers/dateTime';
 import puppeteer from 'puppeteer';
-
-export interface SiteIntegration {
-    url: string;
-    // search?: string;
-    recipeTitle: string;
-    recipeDescription?: string;
-    recipePrepTime?: string;
-    recipeCookTime: string;
-    recipeServings?: string;
-    recipeIngredients: string;
-    recipeIngredientsQuantity?: string;
-    recipeInstructions: string;
-    recipeTags?: string;
-    images?: string;
-}
+import { integratedSite } from './sites';
 
 export interface RecipeIntegrationInterface extends IRecipe {
-    populate(site: SiteIntegration): Promise<void>;
+    populate(site: integratedSite): Promise<void>;
 }
 
 export class RecipeIntegration implements RecipeIntegrationInterface {
@@ -43,7 +29,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
         };
     }
 
-    async populate(site: SiteIntegration): Promise<void> {
+    async populate(site: integratedSite): Promise<void> {
         const browser = await puppeteer.launch({
             args: [
                 '--no-sandbox',
@@ -68,7 +54,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
         
         await Promise.all([
             // Title
-            page.$eval(site.recipeTitle, (x) => x.textContent)
+            page.$eval(site.integration.recipeTitle, (x) => x.textContent)
                 .then((title) => {
                     if (!title) {
                         console.error('No title in import URL');
@@ -78,49 +64,58 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
                 }),
 
             // Description
-            site.recipeDescription 
-                ? page.$eval(site.recipeDescription, (x) => x.textContent)
+            site.integration.recipeDescription 
+                ? page.$eval(site.integration.recipeDescription, (x) => x.textContent)
                     .then((description) => this.description = description ?? '')
                 : this.description = '',
 
             // Preparation Time
-            site.recipePrepTime 
-                ? page.$eval(site.recipePrepTime, (x) => x.textContent)
+            site.integration.recipePrepTime 
+                ? page.$eval(site.integration.recipePrepTime, (x) => x.textContent)
                     .then((prepTime) => stringTime.preparation = prepTime)
                 : stringTime.preparation = '',
 
             // Cooking Time
-            page.$eval(site.recipeCookTime, (x) => x.textContent)
+            page.$eval(site.integration.recipeCookTime, (x) => x.textContent)
                 .then((cookingTime) => stringTime.cooking = cookingTime)
             ,
 
             // Servings
-            site.recipeServings
-                ? page.$eval(site.recipeServings, (x) => x.textContent)
+            site.integration.recipeServings
+                ? page.$eval(site.integration.recipeServings, (x) => x.textContent)
                     .then((servings) => stringServings = servings)
                 : stringServings = '4',
 
             // Ingredients
-            page.$$eval(site.recipeIngredients, (X) => X.map((x) => x.textContent))
+            page.$$eval(site.integration.recipeIngredients, (X) => X.map((x) => {
+                return {
+                    name: x.textContent,
+                    quantity: x.previousElementSibling?.textContent,
+                };
+            }))
                 .then((ingredients) => 
-                    this.ingredients = ingredients.some((ingredient) => ingredient === null)
+                    this.ingredients = ingredients.some((ingredient) => ingredient.name! === null)
                         ? []
                         : ingredients.map((ingredient) => {
                             return {
                                 quantity: 0,
-                                name: ingredient!
+                                name: site.name === 'delish'
+                                    ? ingredient.quantity 
+                                        ? (ingredient.quantity.replace(/\n|\t/g, '') + ' ').replace(/  +/g, ' ') + ingredient.name
+                                        : ingredient.name!
+                                    : ingredient.name!
                             };
                         })
                 ),
 
             // Ingredients Quantity
-            site.recipeIngredientsQuantity
-                ? page.$$eval(site.recipeIngredientsQuantity, (X) => X.map(x => x.textContent!))
+            site.integration.recipeIngredientsQuantity
+                ? page.$$eval(site.integration.recipeIngredientsQuantity, (X) => X.map(x => x.textContent!))
                     .then((quantity) => stringQuantity = quantity)
                 : stringQuantity = [],
 
             // Instructions
-            page.$$eval(site.recipeInstructions, (X) => X.map((x) => x.textContent))
+            page.$$eval(site.integration.recipeInstructions, (X) => X.map((x) => x.textContent))
                 .then((instructions) => 
                     this.instructions = instructions.some((step) => step === null)
                         ? []
@@ -133,8 +128,8 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
                 ),
 
             // Tags
-            site.recipeTags
-                ? page.$$eval(site.recipeTags, (X) => X.map((x) => x.textContent!))
+            site.integration.recipeTags
+                ? page.$$eval(site.integration.recipeTags, (X) => X.map((x) => x.textContent!))
                     .then((tags) => 
                         this.tags = tags.map((tag) => {
                             return { value: tag };
@@ -143,15 +138,15 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
                 : this.tags = [],
 
             // Image
-            site.images
-                ? page.$$eval(site.images!, (X) => X.map((x) => x.getAttribute('src')!))
+            site.integration.images
+                ? page.$$eval(site.integration.images!, (X) => X.map((x) => x.getAttribute('src')!))
                     .then((images) => this.images = images)
                 : this.images = [],
         ]);
 
         this.time = {
-            preparation: getTimeFromString(stringTime.preparation),
-            cooking: getTimeFromString(stringTime.cooking),
+            preparation: getTimeFromString(stringTime.preparation, site),
+            cooking: getTimeFromString(stringTime.cooking, site),
         };
 
         this.servings = stringServings ? parseInt(stringServings) : 4;
