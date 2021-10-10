@@ -2,6 +2,7 @@ import { Ingredient, IRecipe, RecipeTime, Step, Tag } from '../models/recipe.mod
 import { getTimeFromString } from '../helpers/dateTime';
 import puppeteer from 'puppeteer';
 import { integratedSite } from './sites';
+import { sanitizeWhiteSpaces } from '../helpers/string';
 
 export interface RecipeIntegrationInterface extends IRecipe {
     populate(site: integratedSite): Promise<void>;
@@ -16,7 +17,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
     ingredients!: Ingredient[];
     instructions!: Step[];
     tags!: Tag[];
-    images!: string[];
+    images!: any[];
     rating = 0;
 
     constructor(url: string) {
@@ -83,7 +84,11 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
             // Servings
             site.integration.recipeServings
                 ? page.$eval(site.integration.recipeServings, (x) => x.textContent)
-                    .then((servings) => stringServings = servings)
+                    .then((servings) => 
+                        stringServings = ['simplyRecipes'].includes(site.name) && servings
+                            ? servings.replace(/(servings)| /g, '') 
+                            : servings
+                    )
                 : stringServings = '4',
 
             // Ingredients
@@ -99,11 +104,11 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
                         : ingredients.map((ingredient) => {
                             return {
                                 quantity: 0,
-                                name: site.name === 'delish'
+                                name: ['delish'].includes(site.name)
                                     ? ingredient.quantity 
-                                        ? (ingredient.quantity.replace(/\n|\t/g, '') + ' ').replace(/  +/g, ' ') + ingredient.name
-                                        : ingredient.name!
-                                    : ingredient.name!
+                                        ? sanitizeWhiteSpaces(ingredient.quantity) + ' ' + sanitizeWhiteSpaces(ingredient.name!)
+                                        : sanitizeWhiteSpaces(ingredient.name!)
+                                    : sanitizeWhiteSpaces(ingredient.name!)
                             };
                         })
                 ),
@@ -115,14 +120,22 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
                 : stringQuantity = [],
 
             // Instructions
-            page.$$eval(site.integration.recipeInstructions, (X) => X.map((x) => x.textContent))
+            page.$$eval(site.integration.recipeInstructions, (X) => X.map((x) => {
+                return {
+                    default: x.textContent,
+                    simplyRecipes: Array.from(x.getElementsByTagName('p'))
+                        .reduce((total, current) => total += current.textContent, ''),
+                };
+            }))
                 .then((instructions) => 
                     this.instructions = instructions.some((step) => step === null)
                         ? []
                         : instructions.map((step, index) => {
                             return {
                                 position: index + 1,
-                                content: step!
+                                content: site.name === 'simplyRecipes'
+                                    ? sanitizeWhiteSpaces(step.simplyRecipes)
+                                    : sanitizeWhiteSpaces(step.default!)
                             };
                         })
                 ),
@@ -139,8 +152,16 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 
             // Image
             site.integration.images
-                ? page.$$eval(site.integration.images!, (X) => X.map((x) => x.getAttribute('src')!))
-                    .then((images) => this.images = images)
+                ? page.$$eval(site.integration.images!, (X) => X.map((x) => {
+                    return {
+                        default: x.getAttribute('src')!,
+                        delish: x.getAttribute('data-src')!
+                    };
+                }))
+                    .then((images) => this.images = ['delish', 'simplyRecipes'].includes(site.name)
+                        ? images.map((i) => i.delish) 
+                        : images.map((i) => i.default)
+                    )
                 : this.images = [],
         ]);
 

@@ -1,5 +1,6 @@
 import { allRecipes } from './allRecipes';
 import { delish } from './delish';
+import { simplyRecipes } from './simplyRecipes';
 
 export interface SiteIntegration {
     url: string;
@@ -31,5 +32,10 @@ export const integratedSites: integratedSite[] = [
         name: 'delish',
         url: 'www.delish.com',
         integration: delish,
+    },
+    {
+        name: 'simplyRecipes',
+        url: 'www.simplyrecipes.com',
+        integration: simplyRecipes,
     }
 ];
