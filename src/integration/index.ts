@@ -77,8 +77,10 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
                 : stringTime.preparation = '',
 
             // Cooking Time
-            page.$eval(site.integration.recipeCookTime, (x) => x.textContent)
-                .then((cookingTime) => stringTime.cooking = cookingTime)
+            site.integration.recipeCookTime 
+                ? page.$eval(site.integration.recipeCookTime, (x) => x.textContent)
+                    .then((cookingTime) => stringTime.cooking = cookingTime)
+                : stringTime.cooking = ''
             ,
 
             // Servings

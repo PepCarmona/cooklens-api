@@ -1,4 +1,5 @@
 import { allRecipes } from './allRecipes';
+import { bonappetit } from './bonappetit';
 import { delish } from './delish';
 import { simplyRecipes } from './simplyRecipes';
 
@@ -8,7 +9,7 @@ export interface SiteIntegration {
     recipeTitle: string;
     recipeDescription?: string;
     recipePrepTime?: string;
-    recipeCookTime: string;
+    recipeCookTime?: string;
     recipeServings?: string;
     recipeIngredients: string;
     recipeIngredientsQuantity?: string;
@@ -37,5 +38,10 @@ export const integratedSites: integratedSite[] = [
         name: 'simplyRecipes',
         url: 'www.simplyrecipes.com',
         integration: simplyRecipes,
+    },
+    {
+        name: 'bonappetit',
+        url: 'www.bonappetit.com',
+        integration: bonappetit,
     }
 ];
