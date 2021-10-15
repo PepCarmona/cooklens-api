@@ -13,9 +13,9 @@ export function paginate<T>(query: Query<T[], any>, req: Request, res: Response)
         .limit(limit === 0 ? limit  : limit + 1)
         .skip(skip)
         .then((result: T[]) => {
-            const next = result.length === limit + 1;
+            const next = limit !== 0 && result.length === limit + 1;
 
-            if (limit !== 0 && next) { 
+            if (next) { 
                 result.pop();
             }
 
