@@ -31,7 +31,7 @@ export interface IRecipe {
   tags: Tag[];
   images?: string[];
   rating: number;
-  author?: Schema.Types.ObjectId[] | IUser[]
+  author?: Schema.Types.ObjectId | IUser
 }
 
 export interface IRecipeWithId extends IRecipe {

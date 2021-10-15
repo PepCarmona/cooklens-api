@@ -9,6 +9,34 @@ import Recipe, { IRecipe } from '../models/recipe.model';
 
 const recipeRouter = express.Router();
 
+recipeRouter.route('/get').get((req, res) => {
+    const searchType = req.query.searchType || 'title';
+    const searchText = req.query.searchText || '';
+
+    let filter = {};
+
+    let regex = new RegExp('.*');
+
+    try {
+        regex = new RegExp(searchText.toString().length > 0 ? searchText.toString() : '.*', 'i');
+    } catch (err) {
+        return res.status(500).json(new CustomError('Could not create regex', err));
+    }
+    
+    switch (searchType) {
+    case 'title':
+        filter = { title: regex };
+        break;
+    case 'ingredient':
+        filter = { 'ingredients.name': regex };
+        break;
+    case 'tag':
+        filter = { 'tags.value': regex };
+        break;
+    }
+    paginate(Recipe.find(filter), req, res);
+});
+
 recipeRouter.route('/getById').get((req, res) => {
     if (!req.query.id) {
         return res.status(400).json(new CustomError('No id provided'));
@@ -51,32 +79,13 @@ recipeRouter.route('/getRandom').get((req, res) => {
         });
 });
 
-recipeRouter.route('/get').get((req, res) => {
-    const searchType = req.query.searchType || 'title';
-    const searchText = req.query.searchText || '';
-
-    let filter = {};
-
-    let regex = new RegExp('.*');
-
-    try {
-        regex = new RegExp(searchText.toString().length > 0 ? searchText.toString() : '.*', 'i');
-    } catch (err) {
-        return res.status(500).json(new CustomError('Could not create regex', err));
+recipeRouter.route('/getByUser').get((req, res) => {
+    if (!req.query.userId) {
+        return res.status(400).json(new CustomError('No user provided'));
     }
-    
-    switch (searchType) {
-    case 'title':
-        filter = { title: regex };
-        break;
-    case 'ingredient':
-        filter = { 'ingredients.name': regex };
-        break;
-    case 'tag':
-        filter = { 'tags.value': regex };
-        break;
-    }
-    paginate(Recipe.find(filter), req, res);
+
+    // @ts-ignore
+    paginate(Recipe.find({ author: req.query.userId }), req, res);
 });
 
 recipeRouter.route('/add').post((req, res) => {

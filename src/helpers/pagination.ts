@@ -1,5 +1,6 @@
 import { CallbackError, Query } from 'mongoose';
 import { Request, Response } from 'express';
+import { CustomError } from './errors';
 
 export const defaultLimitPerPage = 0;
 
@@ -25,7 +26,7 @@ export function paginate<T>(query: Query<T[], any>, req: Request, res: Response)
             });
         })
         .catch((err : CallbackError) => {
-            res.status(404).send(err);
+            res.status(500).send(new CustomError('Could not paginate result', err));
         });
 }
 
