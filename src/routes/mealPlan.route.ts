@@ -71,4 +71,60 @@ mealPlanRouter.route('/deleteWeekPlan').delete(authMiddleware, (req: RequestWith
         });
 });
 
+mealPlanRouter.route('/subscribeToWeekPlan').post(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+    const { id } = req.query;
+    const user = req.decoded!.user;
+
+    if (!id) {
+        return res.status(400).json(new CustomError('Week plan Id not provided'));
+    }
+
+    WeeklyPlan
+        .findById(id)
+        .then((weekPlan) => {
+            if (!weekPlan) {
+                return res.status(404).json(new CustomError('Could not find week plan with provided id'));
+            }
+
+            User
+                .findByIdAndUpdate(
+                    user._id,
+                    { $push: { mealPlans: id }},
+                    { new: true }
+                )
+                .then((user) => res.status(200).json(user))
+                .catch((err) => res.status(500).json(
+                    new CustomError('Could not find user by id or update it', err)
+                ));
+        });
+});
+
+mealPlanRouter.route('/unsubscribeToWeekPlan').post(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+    const { id } = req.query;
+    const user = req.decoded!.user;
+
+    if (!id) {
+        return res.status(400).json(new CustomError('Week plan Id not provided'));
+    }
+
+    WeeklyPlan
+        .findById(id)
+        .then((weekPlan) => {
+            if (!weekPlan) {
+                return res.status(404).json(new CustomError('Could not find week plan with provided id'));
+            }
+
+            User
+                .findByIdAndUpdate(
+                    user._id,
+                    { $pull: { mealPlans: id }},
+                    { new: true }
+                )
+                .then((user) => res.status(200).json(user))
+                .catch((err) => res.status(500).json(
+                    new CustomError('Could not find user by id or update it', err)
+                ));
+        });
+});
+
 export default mealPlanRouter;
