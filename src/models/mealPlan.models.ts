@@ -27,7 +27,8 @@ const DailyPlanSchema = new Schema<DailyPlan>(
             type: Schema.Types.ObjectId,
             ref: 'Recipe',
         }
-    }
+    },
+    { _id: false }
 );
 
 const WeeklyPlanSchema = new Schema<IWeeklyPlan>(
