@@ -4,6 +4,15 @@ import { IRecipe } from './recipe.model';
 
 type Role = 'admin' | 'mod' | 'author' | 'guest'
 
+export interface SigninForm {
+    username: string;
+    password: string;
+}
+
+export interface SignupForm extends SigninForm {
+    email: string;
+}
+
 export interface IUser {
     username: string;
     email: string;

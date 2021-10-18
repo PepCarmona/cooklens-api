@@ -1,30 +1,32 @@
 import express from 'express';
 import { compare, hash } from 'bcryptjs';
-import User, { IUser } from '../models/user.model';
+import User, { SigninForm, SignupForm } from '../models/user.model';
 import { sign, verify } from 'jsonwebtoken';
 import { CustomError } from '../helpers/errors';
 
 const authRouter = express.Router();
 
 authRouter.route('/signup').post((req, res) => {
-    if (!req.body || Object.keys(req.body).length === 0) {
+    const signupForm: SignupForm = req.body;
+
+    if (!signupForm || Object.keys(signupForm).length === 0) {
         return res.status(400).json(new CustomError('Cannot save empty objects'));
     }
 
-    if (!req.body.username || !req.body.email || !req.body.password) {
+    if (!signupForm.username || !signupForm.email || !signupForm.password) {
         return res.status(400).json(new CustomError('User has missing information for sign up'));
     }
 
     // TODO: use middlewares
     User
-        .findOne({ username: req.body.username })
-        .then((foundUser: IUser | null) => {
-            if (foundUser !== null) {
+        .findOne({ username: signupForm.username })
+        .then((foundUserByUsername) => {
+            if (foundUserByUsername !== null) {
                 return res.status(400).json(new CustomError('This username already exists'));
             }
             User
-                .findOne({ email: req.body.email })
-                .then(async (foundUser: IUser | null) => {
+                .findOne({ email: signupForm.email })
+                .then(async (foundUser) => {
                     if (foundUser !== null) {
                         return res.status(400).json(
                             new CustomError('This email is already being used by another user')
@@ -32,17 +34,17 @@ authRouter.route('/signup').post((req, res) => {
                     }
 
                     const user = new User({
-                        ...req.body,
-                        password: await hash(req.body.password, 8)
+                        ...signupForm,
+                        password: await hash(signupForm.password, 8)
                     });
                 
                     user
                         .save()
-                        .then((user: IUser) => {
-                            sign({ user }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
+                        .then((savedUser) => {
+                            sign({ savedUser }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
                                 res.status(200).json({
                                     // @ts-ignore
-                                    user: {...user._doc, password:undefined},
+                                    user: {...savedUser._doc, password:undefined},
                                     token
                                 });
                             });
@@ -59,64 +61,67 @@ authRouter.route('/signup').post((req, res) => {
 });
 
 authRouter.route('/signin').post((req, res) => {
-    if (req.body.token) {
-        const token = req.body.token;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        verify(token, process.env.JWTSECRET!, (err: any, decoded: any) => {
-            if (err) {
-                return res.status(500).json(new CustomError('Unable to verify token'));
-            }
-
-            if (decoded.exp <= Date.now() / 1000) {
-                return res.status(400).json(new CustomError('Token expired'));
-            }
+    const signinForm: SigninForm = req.body;
     
-            User
-                .findById(decoded.user._id)
-                .then((user: IUser | null) => {
-                    if (user === null) {
-                        return res.status(404);
-                    }
+    User
+        .findOne({ username: signinForm.username })
+        .then(async (foundUser) => {
+            if (foundUser === null) {
+                return res.status(404).json(new CustomError('User not found'));
+            }
+            
+            const isValidPassword = await compare(
+                signinForm.password,
+                foundUser.password
+            );
 
+            if (!isValidPassword) {
+                return res.status(400).json(new CustomError('Invalid password'));
+            }
+
+            sign({ foundUser }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
+                if (err) {
+                    return res.status(500).json(new CustomError('Could not sign token', err));
+                }
+
+                res.status(200).json({
                     // @ts-ignore
-                    res.status(200).json({...user._doc, password: undefined});
-                })
-                .catch((err) => {
-                    res.status(500).json(new CustomError('Could not find user by id', err));
+                    user: {...foundUser._doc, password:undefined},
+                    token
                 });
-        });
-    } else {
+            });
+        })
+        .catch((err) => res.status(500).json(new CustomError('Could not find user by username', err)));
+});
+
+authRouter.route('/signinFromToken').post((req, res) => {
+    const token = req.body.token;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return verify(token, process.env.JWTSECRET!, (err: any, decoded: any) => {
+        if (err) {
+            return res.status(500).json(new CustomError('Unable to verify token'));
+        }
+
+        if (decoded.exp <= Date.now() / 1000) {
+            return res.status(400).json(new CustomError('Token expired'));
+        }
+
         User
-            .findOne({ username: req.body.username })
-            .then(async (user: IUser | null) => {
-                if (user === null) {
-                    return res.status(404).json(new CustomError('User not found'));
-                }
-                
-                const isValidPassword = await compare(
-                    req.body.password,
-                    user.password
-                );
-
-                if (!isValidPassword) {
-                    return res.status(400).json(new CustomError('Invalid password'));
+            .findById(decoded.user._id)
+            .then((foundUser) => {
+                if (foundUser === null) {
+                    return res.status(404);
                 }
 
-                sign({ user }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
-                    if (err) {
-                        return res.status(500).json(new CustomError('Could not sign token', err));
-                    }
-
-                    res.status(200).json({
-                        // @ts-ignore
-                        user: {...user._doc, password:undefined},
-                        token
-                    });
-                });
+                // @ts-ignore
+                res.status(200).json({...foundUser._doc, password: undefined});
             })
-            .catch((err) => res.status(500).json(new CustomError('Could not find user by username', err)));
-    }
+            .catch((err) => {
+                res.status(500).json(new CustomError('Could not find user by id', err));
+            });
+    });
 });
 
 authRouter.route('/restricted').get((req, res) => {

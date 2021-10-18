@@ -2,61 +2,66 @@ import express from 'express';
 import { CustomError } from '../helpers/errors';
 import { defaultLimitPerPage } from '../helpers/pagination';
 import authMiddleware, { RequestWithUserDecodedToken } from '../middleware/auth.middleware';
-import User, { IUser } from '../models/user.model';
+import User from '../models/user.model';
 
 
 const userRouter = express.Router();
 
 userRouter.route('/getById').get((req, res) => {
-    if (!req.query.id) {
+    const userId = req.query.id;
+
+    if (!userId) {
         return res.status(400).json(new CustomError('Week plan Id not provided'));
     }
 
     User
-        .findById(req.query.id)
+        .findById(userId)
         .select('-password -__v')
-        .then((user: IUser | null) => {
-            res.status(200).json(user);
+        .then((foundUser) => {
+            res.status(200).json(foundUser);
         })
         .catch((err) => {
             if (err?.name === 'CastError') {
-                res.status(400).json(new CustomError('The provided id is not valid'));
+                return res.status(400).json(new CustomError('The provided id is not valid'));
             }
-            else {
-                res.status(500).json(new CustomError('Could not find recipe by id', err));
-            }
+            
+            res.status(500).json(new CustomError('Could not find recipe by id', err));
         });
 });
 
 userRouter.route('/addFavRecipe').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {    
-    if (!req.body._id) {
+    const recipeId = req.body._id;
+    const user = req.decoded!.user;
+
+    if (!recipeId) {
         return res.status(400).json(new CustomError('No recipe provided'));
     }
 
-    const user = req.decoded!.user;
     User
         .findOneAndUpdate(
-            { _id: user._id, favRecipes: { $ne: req.body._id}},
-            { $push: { favRecipes: req.body._id }},
+            { _id: user._id, favRecipes: { $ne: recipeId}},
+            { $push: { favRecipes: recipeId }},
             { new: true }
         )
-        .then((user: IUser | null) => res.status(200).json(user))
+        .then((updatedUser) => res.status(200).json(updatedUser))
         .catch((err) => res.status(500).json(new CustomError('Could not find user by id or update it', err)));
 });
 
 userRouter.route('/removeFavRecipe').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
-    if (!req.body._id) {
+    const recipeId = req.body._id;
+    const user = req.decoded!.user;
+
+    if (!recipeId) {
         return res.status(400).json(new CustomError('No recipe provided'));
     }
 
-    const user = req.decoded!.user;
     User
         .findByIdAndUpdate(
             user._id,
-            { $pull: { favRecipes: req.body._id }},
+            { $pull: { favRecipes: recipeId }},
             { new: true }
         )
-        .then((user: IUser | null) => res.status(200).json(user))
+        .then((updatedUser) => res.status(200).json(updatedUser))
         .catch((err) => res.status(500).json(new CustomError('Could not find user by id or update it', err)));
 });
 
@@ -66,23 +71,24 @@ userRouter.route('/getFavRecipes').get(authMiddleware, (req: RequestWithUserDeco
     const skip = (page - 1) * limit;
     
     const user = req.decoded!.user;
+
     User
         .findById(user._id)
         .select({ 'favRecipes': { $slice: limit !== 0 ? [skip, skip + limit + 1] : Number.MAX_VALUE}})
         .populate('favRecipes')
-        .then((user: IUser | null) => {
-            if (!user) {
+        .then((foundUser) => {
+            if (!foundUser) {
                 return res.status(404).json(new CustomError('Document with provided id not found'));
             }
             
-            const next = limit !== 0 && user.favRecipes.length === limit + 1;
+            const next = limit !== 0 && foundUser.favRecipes.length === limit + 1;
 
             if (next) {
-                user.favRecipes.pop();
+                foundUser.favRecipes.pop();
             }
 
             res.status(200).json({
-                result: user.favRecipes,
+                result: foundUser.favRecipes,
                 next
             });
         })

@@ -12,49 +12,52 @@ mealPlanRouter.route('/getAll').get((req, res) => {
 });
 
 mealPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
-    if (!req.body || Object.keys(req.body).length === 0) {
+    const weekPlan: IWeeklyPlan = req.body;
+    const user = req.decoded!.user;
+
+    if (!weekPlan || Object.keys(weekPlan).length === 0) {
         return res.status(400).json(new CustomError('Cannot save empty objects'));
     }
 
-    const user = req.decoded!.user;
-
-    const weekPlan = new WeeklyPlan(req.body);
     weekPlan.author = user._id;
 
-    if (!req.body.dailyPlans || req.body.dailyPlans.length === 0) {
+    // @ts-ignore
+    if (!weekPlan.dailyPlans || weekPlan.dailyPlans.length === 0) {
         weekPlan.dailyPlans = [{}, {}, {}, {}, {}, {}, {}];
     }
-    
 
-    weekPlan
+    const weekPlanDocument = new WeeklyPlan(weekPlan);
+
+    weekPlanDocument
         .save()
-        .then((weekplan) => {
+        .then((savedWeekPlan) => {
             User
                 .findByIdAndUpdate(
                     user._id,
-                    { $push: { mealPlans: weekPlan._id }},
+                    { $push: { mealPlans: savedWeekPlan._id }},
                     { new: true }
                 )
-                .then(() => res.status(200).json(weekplan))
+                .then(() => res.status(200).json(savedWeekPlan))
                 .catch((err) => res.status(500).json(new CustomError('Could not find user by id or update it', err)));
         })
         .catch((err) => res.status(500).json(new CustomError('Could not save week plan', err)));
 });
 
 mealPlanRouter.route('/deleteWeekPlan').delete(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
-    if (!req.query.id) {
+    const weekPlanId = req.query.id;
+    const user = req.decoded!.user;
+
+    if (!weekPlanId) {
         return res.status(400).json(new CustomError('Week plan Id not provided'));
     }
 
-    const user = req.decoded!.user;
-
     WeeklyPlan
         .findOneAndDelete({
-            _id: req.query.id,
-            author: user._id
+            _id: weekPlanId,
+            author: user
         })
-        .then((weekPlan) => {
-            if (!weekPlan) {
+        .then((deletedWeekPlan) => {
+            if (!deletedWeekPlan) {
                 return res.status(404).json(
                     new CustomError('Week plan with provided id not found or not enough permissions to remove it')
                 );
@@ -62,10 +65,10 @@ mealPlanRouter.route('/deleteWeekPlan').delete(authMiddleware, (req: RequestWith
 
             User
                 .updateMany(
-                    { mealPlans: weekPlan._id },
-                    { $pull: { mealPlans: weekPlan._id } }
+                    { mealPlans: deletedWeekPlan._id },
+                    { $pull: { mealPlans: deletedWeekPlan._id } }
                 )
-                .then(() => res.status(200).json(weekPlan))
+                .then(() => res.status(200).json(deletedWeekPlan))
                 .catch((err) => res.status(500).json(
                     new CustomError('Could not remove week plan from subscribed users', err)
                 ));
@@ -89,14 +92,14 @@ mealPlanRouter.route('/subscribeToWeekPlan').put(authMiddleware, (req: RequestWi
             { $push: { mealPlans: weekPlanId }},
             { new: true }
         )
-        .then((user) => {
-            if (!user) {
+        .then((updatedUser) => {
+            if (!updatedUser) {
                 return res.status(400).json(
                     new CustomError('Current user is already subscribed to this week plan')
                 );
             }
 
-            res.status(200).json(user);
+            res.status(200).json(updatedUser);
         })
         .catch((err) => res.status(500).json(
             new CustomError('Could not find user by id or update it', err)
@@ -117,7 +120,15 @@ mealPlanRouter.route('/unsubscribeToWeekPlan').put(authMiddleware, (req: Request
             { $pull: { mealPlans: weekPlanId }},
             { new: true }
         )
-        .then((user) => res.status(200).json(user))
+        .then((updatedUser) => {
+            if (!updatedUser) {
+                return res.status(404).json(
+                    new CustomError('Could not find user by id')
+                );
+            }
+
+            res.status(200).json(updatedUser);
+        })
         .catch((err) => res.status(500).json(
             new CustomError('Could not find user by id or update it', err)
         ));
