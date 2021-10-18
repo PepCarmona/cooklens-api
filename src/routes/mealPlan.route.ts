@@ -20,6 +20,10 @@ mealPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUs
 
     const weekPlan = new WeeklyPlan(req.body);
     weekPlan.author = user._id;
+
+    if (!req.body.dailyPlans || req.body.dailyPlans.length === 0) {
+        weekPlan.dailyPlans = [{}, {}, {}, {}, {}, {}, {}];
+    }
     
 
     weekPlan
