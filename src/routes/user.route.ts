@@ -28,15 +28,15 @@ userRouter.route('/getById').get((req, res) => {
         });
 });
 
-userRouter.route('/addFavRecipe').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+userRouter.route('/addFavRecipe').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {    
     if (!req.body._id) {
         return res.status(400).json(new CustomError('No recipe provided'));
     }
 
     const user = req.decoded!.user;
     User
-        .findByIdAndUpdate(
-            user._id,
+        .findOneAndUpdate(
+            { _id: user._id, favRecipes: { $ne: req.body._id}},
             { $push: { favRecipes: req.body._id }},
             { new: true }
         )
