@@ -11,6 +11,29 @@ mealPlanRouter.route('/getAll').get((req, res) => {
     paginate(WeeklyPlan.find(), req, res);
 });
 
+mealPlanRouter.route('/getById').get((req, res) => {
+    const weekPlanId = req.query.id;
+
+    if (!weekPlanId) {
+        return res.status(400).json(new CustomError('No id provided'));
+    }
+
+    WeeklyPlan
+        .findById(weekPlanId)
+        .populate('dailyPlans.lunch')
+        .populate('dailyPlans.dinner')
+        .then((foundWeekPlan) => {
+            res.status(200).json(foundWeekPlan);
+        })
+        .catch((err) => {
+            if (err?.name === 'CastError') {
+                return res.status(400).json(new CustomError('The provided id is not valid'));
+            }
+
+            res.status(500).json(new CustomError('Could not find recipe by id', err));
+        });
+});
+
 mealPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
     const weekPlan: IWeeklyPlan = req.body;
     const user = req.decoded!.user;
@@ -41,6 +64,32 @@ mealPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUs
                 .catch((err) => res.status(500).json(new CustomError('Could not find user by id or update it', err)));
         })
         .catch((err) => res.status(500).json(new CustomError('Could not save week plan', err)));
+});
+
+mealPlanRouter.route('/updateWeekPlan').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+    const weekPlanId = req.query.id;
+    const weekPlan: IWeeklyPlan = req.body;
+    const user = req.decoded!.user;
+
+    if (!weekPlan || Object.keys(weekPlan).length === 0) {
+        return res.status(400).json(new CustomError('Cannot save empty objects'));
+    }
+
+    WeeklyPlan
+        .findOneAndUpdate(
+            { _id: weekPlanId, author: user }, weekPlan, { new: true })
+        .then((updatedWeekPlan) => {
+            if (!updatedWeekPlan) {
+                return res.status(404).json(
+                    new CustomError('Document with provided id not found or not enough permissions to update it')
+                );
+            }
+
+            res.status(200).json(updatedWeekPlan);
+        })
+        .catch((err) => {
+            res.status(500).json(new CustomError('Could not find week plan by id or update it', err));
+        });
 });
 
 mealPlanRouter.route('/deleteWeekPlan').delete(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
@@ -132,32 +181,6 @@ mealPlanRouter.route('/unsubscribeToWeekPlan').put(authMiddleware, (req: Request
         .catch((err) => res.status(500).json(
             new CustomError('Could not find user by id or update it', err)
         ));
-});
-
-mealPlanRouter.route('/updateWeekPlan').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
-    const weekPlanId = req.query.id;
-    const weekPlan: IWeeklyPlan = req.body;
-    const user = req.decoded!.user;
-
-    if (!weekPlan || Object.keys(weekPlan).length === 0) {
-        return res.status(400).json(new CustomError('Cannot save empty objects'));
-    }
-
-    WeeklyPlan
-        .findOneAndUpdate(
-            { _id: weekPlanId, author: user }, weekPlan, { new: true })
-        .then((updatedWeekPlan) => {
-            if (!updatedWeekPlan) {
-                return res.status(404).json(
-                    new CustomError('Document with provided id not found or not enough permissions to update it')
-                );
-            }
-
-            res.status(200).json(updatedWeekPlan);
-        })
-        .catch((err) => {
-            res.status(500).json(new CustomError('Could not find week plan by id or update it', err));
-        });
 });
 
 export default mealPlanRouter;
