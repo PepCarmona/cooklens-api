@@ -34,6 +34,19 @@ mealPlanRouter.route('/getById').get((req, res) => {
         });
 });
 
+mealPlanRouter.route('/getMyWeekPlans').get(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+    const user = req.decoded!.user;
+
+    WeeklyPlan
+        .find({ author: user._id })
+        .then((weekPlans) => {
+            res.status(200).json(weekPlans);
+        })
+        .catch((err) => {
+            res.status(500).json(new CustomError('Could not find weekPlans by user', err));
+        });
+});
+
 mealPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
     const weekPlan: IWeeklyPlan = req.body;
     const user = req.decoded!.user;
