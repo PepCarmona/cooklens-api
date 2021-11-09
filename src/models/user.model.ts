@@ -1,7 +1,17 @@
 import { Document, model, Schema } from 'mongoose';
+import { IWeeklyPlan } from './mealPlan.models';
 import { IRecipe } from './recipe.model';
 
 type Role = 'admin' | 'mod' | 'author' | 'guest'
+
+export interface SigninForm {
+    username: string;
+    password: string;
+}
+
+export interface SignupForm extends SigninForm {
+    email: string;
+}
 
 export interface IUser {
     username: string;
@@ -9,6 +19,7 @@ export interface IUser {
     password: string;
     role?: Role;
     favRecipes: Schema.Types.ObjectId[] | IRecipe[];
+    mealPlans: Schema.Types.ObjectId[] | IWeeklyPlan[];
 }
 
 export interface IUserWithId extends IUser {
@@ -35,6 +46,12 @@ const UserSchema = new Schema<IUser>(
                 type: Schema.Types.ObjectId,
                 ref: 'Recipe',
             },
+        ],
+        mealPlans: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'WeeklyPlan',
+            }
         ]
     }
 );

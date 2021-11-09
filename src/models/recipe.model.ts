@@ -45,7 +45,8 @@ const RecipeTimeSchema = new Schema<RecipeTime>(
             type: Number,
             required: true,
         }
-    }
+    },
+    { _id: false }
 );
 
 const IngredientSchema = new Schema<Ingredient>(
@@ -56,7 +57,8 @@ const IngredientSchema = new Schema<Ingredient>(
             type: String,
             required: true,
         }
-    }
+    },
+    { _id: false }
 );
 
 const StepSchema = new Schema<Step>(
@@ -69,7 +71,8 @@ const StepSchema = new Schema<Step>(
             type: String,
             required: true,
         }
-    }
+    },
+    { _id: false }
 );
 
 const TagSchema = new Schema<Tag>(
@@ -78,7 +81,8 @@ const TagSchema = new Schema<Tag>(
             type: String,
             required: true,
         }
-    }
+    },
+    { _id: false }
 );
 
 const RecipeSchema = new Schema<IRecipe>(

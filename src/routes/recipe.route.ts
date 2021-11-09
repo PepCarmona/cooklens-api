@@ -38,22 +38,23 @@ recipeRouter.route('/get').get((req, res) => {
 });
 
 recipeRouter.route('/getById').get((req, res) => {
-    if (!req.query.id) {
+    const recipeId = req.query.id;
+
+    if (!recipeId) {
         return res.status(400).json(new CustomError('No id provided'));
     }
     Recipe
-        .findById(req.query.id)
+        .findById(recipeId)
         .populate('author')
-        .then((recipe: IRecipe | null) => {
-            res.status(200).json(recipe);
+        .then((foundRecipe) => {
+            res.status(200).json(foundRecipe);
         })
         .catch((err: CallbackError) => {
             if (err?.name === 'CastError') {
-                res.status(400).json(new CustomError('The provided id is not valid'));
+                return res.status(400).json(new CustomError('The provided id is not valid'));
             }
-            else {
-                res.status(500).json(new CustomError('Could not find recipe by id', err));
-            }
+
+            res.status(500).json(new CustomError('Could not find recipe by id', err));
         });
 });
 
@@ -67,8 +68,8 @@ recipeRouter.route('/getRandom').get((req, res) => {
                 .findOne()
                 .skip(random)
                 .populate('author')
-                .then((recipe) => {
-                    res.status(200).json(recipe);
+                .then((foundRecipe) => {
+                    res.status(200).json(foundRecipe);
                 })
                 .catch((err) => {
                     res.status(500).json(new CustomError('Could not find recipe', err));
@@ -80,46 +81,52 @@ recipeRouter.route('/getRandom').get((req, res) => {
 });
 
 recipeRouter.route('/getByUser').get((req, res) => {
-    if (!req.query.userId) {
+    const userId = req.query.id;
+
+    if (!userId) {
         return res.status(400).json(new CustomError('No user provided'));
     }
 
     // @ts-ignore
-    paginate(Recipe.find({ author: req.query.userId }), req, res);
+    paginate(Recipe.find({ author: userId }), req, res);
 });
 
 recipeRouter.route('/add').post((req, res) => {
-    if (!req.body || Object.keys(req.body).length === 0) {
+    const recipe: IRecipe = req.body;
+
+    if (!recipe || Object.keys(recipe).length === 0) {
         return res.status(400).json(new CustomError('Cannot save empty objects'));
     }
 
-    const recipe = new Recipe(req.body);
+    const recipeDocument = new Recipe(recipe);
     
-    recipe
+    recipeDocument
         .save()
-        .then((recipe: IRecipe) => {
-            res.status(200).json(recipe);
+        .then((savedRecipe) => {
+            res.status(200).json(savedRecipe);
         })
         .catch((err) => res.status(500).json(new CustomError('Unable to save item to database', err)));
 });
 
 recipeRouter.route('/update').put((req, res) => {
-    if (!req.body || Object.keys(req.body).length === 0) {
+    const recipeId = req.query.id;
+    const recipe: IRecipe = req.body;
+
+    if (!recipe || Object.keys(recipe).length === 0) {
         return res.status(400).json(new CustomError('Cannot save empty objects'));
     }
-    if (!req.query.id) {
+    if (!recipeId) {
         return res.status(400).json(new CustomError('Document Id not provided'));
     }
     
     Recipe
-        .findByIdAndUpdate(req.query.id, req.body, {new: true})
-        .then((recipe: IRecipe | null) => {
-            if (!recipe) {
-                res.status(404).json(new CustomError('Document with provided id not found'));
+        .findByIdAndUpdate(recipeId, recipe, {new: true})
+        .then((updatedRecipe) => {
+            if (!updatedRecipe) {
+                return res.status(404).json(new CustomError('Document with provided id not found'));
             }
-            else {
-                res.status(200).json(recipe);
-            }
+
+            res.status(200).json(updatedRecipe);
         })
         .catch((err) => {
             res.status(500).json(new CustomError('Could not find recipe by id or update it', err));
@@ -127,19 +134,20 @@ recipeRouter.route('/update').put((req, res) => {
 });
 
 recipeRouter.route('/delete').delete((req, res) => {
-    if (!req.query.id) {
+    const recipeId = req.query.id;
+
+    if (!recipeId) {
         return res.status(400).json(new CustomError('Document Id not provided'));
     }
     
     Recipe
-        .findByIdAndDelete(req.query.id)
-        .then((recipe: IRecipe | null) => {
-            if (!recipe) {
-                res.status(404).json(new CustomError('Document with provided id not found'));
+        .findByIdAndDelete(recipeId)
+        .then((deletedRecipe) => {
+            if (!deletedRecipe) {
+                return res.status(404).json(new CustomError('Document with provided id not found'));
             }
-            else {
-                res.status(200).json(recipe);
-            }
+            
+            res.status(200).json(deletedRecipe);
         })
         .catch((err) => {
             res.status(500).json(new CustomError('Could not find recipe by id or delete it', err));
@@ -175,7 +183,7 @@ recipeRouter.route('/import').get((req, res) => {
                 return res.status(500).json(new CustomError('Recipe integration failed'));
             }
             Recipe.findOne({ url: recipe.url })
-                .then((foundRecipe: IRecipe | null) => {
+                .then((foundRecipe) => {
                     if (foundRecipe !== null) {
                         return res.status(400).json(
                             new CustomError('There already exists a recipe imported from this same url')
@@ -187,7 +195,7 @@ recipeRouter.route('/import').get((req, res) => {
                     const DB_recipe = new Recipe(recipe);
                     DB_recipe
                         .save()
-                        .then((recipe: IRecipe) => {
+                        .then((recipe) => {
                             res.status(200).json(recipe);
                         })
                         .catch((err) => res.status(500).json(
