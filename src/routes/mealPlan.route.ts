@@ -39,6 +39,8 @@ mealPlanRouter.route('/getMyWeekPlans').get(authMiddleware, (req: RequestWithUse
 
     WeeklyPlan
         .find({ author: user._id })
+        .populate('dailyPlans.lunch')
+        .populate('dailyPlans.dinner')
         .then((weekPlans) => {
             res.status(200).json(weekPlans);
         })
