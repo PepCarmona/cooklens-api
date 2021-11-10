@@ -93,6 +93,8 @@ mealPlanRouter.route('/updateWeekPlan').put(authMiddleware, (req: RequestWithUse
     WeeklyPlan
         .findOneAndUpdate(
             { _id: weekPlanId, author: user }, weekPlan, { new: true })
+        .populate('dailyPlans.lunch')
+        .populate('dailyPlans.dinner')
         .then((updatedWeekPlan) => {
             if (!updatedWeekPlan) {
                 return res.status(404).json(
