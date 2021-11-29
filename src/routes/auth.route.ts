@@ -109,7 +109,7 @@ authRouter.route('/signinFromToken').post((req, res) => {
         }
 
         User
-            .findById(decoded.user._id)
+            .findById(decoded.foundUser._id)
             .then((foundUser) => {
                 if (foundUser === null) {
                     return res.status(404);
