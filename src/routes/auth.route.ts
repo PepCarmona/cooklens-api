@@ -80,7 +80,7 @@ authRouter.route('/signin').post((req, res) => {
                 return res.status(400).json(new CustomError('Invalid password'));
             }
 
-            sign({ foundUser }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
+            sign({ user: foundUser }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
                 if (err) {
                     return res.status(500).json(new CustomError('Could not sign token', err));
                 }
@@ -109,7 +109,7 @@ authRouter.route('/signinFromToken').post((req, res) => {
         }
 
         User
-            .findById(decoded.foundUser._id)
+            .findById(decoded.user._id)
             .then((foundUser) => {
                 if (foundUser === null) {
                     return res.status(404);
