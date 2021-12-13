@@ -34,7 +34,8 @@ const DayMealSchema = new Schema<DayMeal>(
             type: Schema.Types.ObjectId,
             ref: 'Recipe',
         }
-    }
+    },
+    { _id: false }
 );
 
 const DayPlanSchema = new Schema<DayPlan>(
@@ -44,7 +45,8 @@ const DayPlanSchema = new Schema<DayPlan>(
             required: true,
         },
         meals: [DayMealSchema]
-    }
+    },
+    { _id: false }
 );
 
 const MealPlanSchema = new Schema<IMealPlan>(

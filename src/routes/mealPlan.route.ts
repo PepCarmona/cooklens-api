@@ -10,6 +10,7 @@ mealPlanRouter.route('/getMealPlan').get(authMiddleware, (req: RequestWithUserDe
 
     MealPlan
         .findOne({ users: user._id })
+        .populate('days.meals.recipe')
         .then((foundMealPlan) => {
             if (foundMealPlan !== null) {
                 return res.status(200).json(foundMealPlan);
@@ -35,8 +36,7 @@ mealPlanRouter.route('/updateMealPlan').put(authMiddleware, (req: RequestWithUse
     }
 
     MealPlan
-        .findOneAndUpdate(
-            { _id: mealPlanId }, mealPlan, { new: true})
+        .findByIdAndUpdate(mealPlanId, mealPlan, { new: true})
         .then((updatedMealPlan) => {
             if (!updatedMealPlan) {
                 return res.status(404).json(
