@@ -6,7 +6,6 @@
     },
     "extends": [
         "eslint:recommended",
-        "plugin:vue/essential",
         "plugin:@typescript-eslint/recommended"
     ],
     "parserOptions": {
@@ -14,24 +13,23 @@
         "parser": "@typescript-eslint/parser"
     },
     "plugins": [
-        "vue",
         "@typescript-eslint"
     ],
     "rules": {
         "indent": [
-            "error",
+            "warn",
             4
         ],
         "linebreak-style": [
-            "error",
+            "warn",
             "windows"
         ],
         "quotes": [
-            "error",
+            "warn",
             "single"
         ],
         "semi": [
-            "error",
+            "warn",
             "always"
         ],
         "@typescript-eslint/no-non-null-assertion": "off",

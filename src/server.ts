@@ -6,6 +6,7 @@ import recipeRouter from './routes/recipe.route';
 import authRouter from './routes/auth.route';
 import userRouter from './routes/user.route';
 import weekPlanRouter from './routes/weekPlan.route';
+import mealPlanRouter from './routes/mealPlan.route';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -32,6 +33,7 @@ app.use('/recipes', recipeRouter);
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
 app.use('/weekPlan', weekPlanRouter);
+app.use('/mealPlan', mealPlanRouter);
 
 app.listen(PORT, () =>
     console.log(`Server is running on http://localhost:${PORT}`)
