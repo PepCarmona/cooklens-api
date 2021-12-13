@@ -2,16 +2,16 @@ import express from 'express';
 import { CustomError } from '../helpers/errors';
 import { paginate } from '../helpers/pagination';
 import authMiddleware, { RequestWithUserDecodedToken } from '../middleware/auth.middleware';
-import WeeklyPlan, { IWeeklyPlan } from '../models/mealPlan.models';
+import WeeklyPlan, { IWeeklyPlan } from '../models/weekPlan.models';
 import User from '../models/user.model';
 
-const mealPlanRouter = express.Router();
+const weekPlanRouter = express.Router();
 
-mealPlanRouter.route('/getAll').get((req, res) => {
+weekPlanRouter.route('/getAll').get((req, res) => {
     paginate(WeeklyPlan.find(), req, res);
 });
 
-mealPlanRouter.route('/getById').get((req, res) => {
+weekPlanRouter.route('/getById').get((req, res) => {
     const weekPlanId = req.query.id;
 
     if (!weekPlanId) {
@@ -34,7 +34,7 @@ mealPlanRouter.route('/getById').get((req, res) => {
         });
 });
 
-mealPlanRouter.route('/getMyWeekPlans').get(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+weekPlanRouter.route('/getMyWeekPlans').get(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
     const user = req.decoded!.user;
 
     WeeklyPlan
@@ -49,7 +49,7 @@ mealPlanRouter.route('/getMyWeekPlans').get(authMiddleware, (req: RequestWithUse
         });
 });
 
-mealPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+weekPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
     const weekPlan: IWeeklyPlan = req.body;
     const user = req.decoded!.user;
 
@@ -72,7 +72,7 @@ mealPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUs
             User
                 .findByIdAndUpdate(
                     user._id,
-                    { $push: { mealPlans: savedWeekPlan._id }},
+                    { $push: { weekPlans: savedWeekPlan._id }},
                     { new: true }
                 )
                 .then(() => res.status(200).json(savedWeekPlan))
@@ -81,7 +81,7 @@ mealPlanRouter.route('/createWeekPlan').post(authMiddleware, (req: RequestWithUs
         .catch((err) => res.status(500).json(new CustomError('Could not save week plan', err)));
 });
 
-mealPlanRouter.route('/updateWeekPlan').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+weekPlanRouter.route('/updateWeekPlan').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
     const weekPlanId = req.query.id;
     const weekPlan: IWeeklyPlan = req.body;
     const user = req.decoded!.user;
@@ -109,7 +109,7 @@ mealPlanRouter.route('/updateWeekPlan').put(authMiddleware, (req: RequestWithUse
         });
 });
 
-mealPlanRouter.route('/deleteWeekPlan').delete(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+weekPlanRouter.route('/deleteWeekPlan').delete(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
     const weekPlanId = req.query.id;
     const user = req.decoded!.user;
 
@@ -131,8 +131,8 @@ mealPlanRouter.route('/deleteWeekPlan').delete(authMiddleware, (req: RequestWith
 
             User
                 .updateMany(
-                    { mealPlans: deletedWeekPlan._id },
-                    { $pull: { mealPlans: deletedWeekPlan._id } }
+                    { weekPlans: deletedWeekPlan._id },
+                    { $pull: { weekPlans: deletedWeekPlan._id } }
                 )
                 .then(() => res.status(200).json(deletedWeekPlan))
                 .catch((err) => res.status(500).json(
@@ -144,7 +144,7 @@ mealPlanRouter.route('/deleteWeekPlan').delete(authMiddleware, (req: RequestWith
         });
 });
 
-mealPlanRouter.route('/subscribeToWeekPlan').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+weekPlanRouter.route('/subscribeToWeekPlan').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
     const weekPlanId = req.body._id;
     const user = req.decoded!.user;
 
@@ -154,8 +154,8 @@ mealPlanRouter.route('/subscribeToWeekPlan').put(authMiddleware, (req: RequestWi
 
     User
         .findOneAndUpdate(
-            { _id: user._id, mealPlans: { $ne: weekPlanId }},
-            { $push: { mealPlans: weekPlanId }},
+            { _id: user._id, weekPlans: { $ne: weekPlanId }},
+            { $push: { weekPlans: weekPlanId }},
             { new: true }
         )
         .then((updatedUser) => {
@@ -172,7 +172,7 @@ mealPlanRouter.route('/subscribeToWeekPlan').put(authMiddleware, (req: RequestWi
         ));
 });
 
-mealPlanRouter.route('/unsubscribeToWeekPlan').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
+weekPlanRouter.route('/unsubscribeToWeekPlan').put(authMiddleware, (req: RequestWithUserDecodedToken, res) => {
     const weekPlanId = req.body._id;
     const user = req.decoded!.user;
 
@@ -183,7 +183,7 @@ mealPlanRouter.route('/unsubscribeToWeekPlan').put(authMiddleware, (req: Request
     User
         .findByIdAndUpdate(
             user._id,
-            { $pull: { mealPlans: weekPlanId }},
+            { $pull: { weekPlans: weekPlanId }},
             { new: true }
         )
         .then((updatedUser) => {
@@ -200,4 +200,4 @@ mealPlanRouter.route('/unsubscribeToWeekPlan').put(authMiddleware, (req: Request
         ));
 });
 
-export default mealPlanRouter;
+export default weekPlanRouter;

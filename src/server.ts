@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import recipeRouter from './routes/recipe.route';
 import authRouter from './routes/auth.route';
 import userRouter from './routes/user.route';
-import mealPlanRouter from './routes/mealPlan.route';
+import weekPlanRouter from './routes/weekPlan.route';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -31,7 +31,7 @@ app.get('/', (req, res) => {
 app.use('/recipes', recipeRouter);
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
-app.use('/plans', mealPlanRouter);
+app.use('/weekPlan', weekPlanRouter);
 
 app.listen(PORT, () =>
     console.log(`Server is running on http://localhost:${PORT}`)
