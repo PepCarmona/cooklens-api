@@ -39,9 +39,15 @@ authRouter.route('/signup').post((req, res) => {
 							);
 					}
 
+					const confirmationCode = sign(
+						{ email: signupForm.email },
+						process.env.JWTSECRET!
+					);
+
 					const user = new User({
 						...signupForm,
 						password: await hash(signupForm.password, 8),
+						confirmationCode,
 					});
 
 					user
