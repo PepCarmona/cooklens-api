@@ -28,6 +28,7 @@ const DayMealSchema = new Schema<DayMeal>(
     {
         meal: {
             type: String,
+            enum: meals,
             required: true,
         },
         recipe: {
@@ -42,6 +43,7 @@ const DayPlanSchema = new Schema<DayPlan>(
     {
         date: {
             type: String,
+            unique: true,
             required: true,
         },
         meals: [DayMealSchema]
