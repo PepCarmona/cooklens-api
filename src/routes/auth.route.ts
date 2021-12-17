@@ -88,6 +88,10 @@ authRouter.route('/signin').post((req, res) => {
 				return res.status(404).json(new CustomError('User not found'));
 			}
 
+			if (foundUser.status === 'pending') {
+				return res.status(400).json(new CustomError('Email not verified'));
+			}
+
 			const isValidPassword = await compare(
 				signinForm.password,
 				foundUser.password
