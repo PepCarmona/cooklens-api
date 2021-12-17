@@ -7,137 +7,164 @@ import { CustomError } from '../helpers/errors';
 const authRouter = express.Router();
 
 authRouter.route('/signup').post((req, res) => {
-    const signupForm: SignupForm = req.body;
+	const signupForm: SignupForm = req.body;
 
-    if (!signupForm || Object.keys(signupForm).length === 0) {
-        return res.status(400).json(new CustomError('Cannot save empty objects'));
-    }
+	if (!signupForm || Object.keys(signupForm).length === 0) {
+		return res.status(400).json(new CustomError('Cannot save empty objects'));
+	}
 
-    if (!signupForm.username || !signupForm.email || !signupForm.password) {
-        return res.status(400).json(new CustomError('User has missing information for sign up'));
-    }
+	if (!signupForm.username || !signupForm.email || !signupForm.password) {
+		return res
+			.status(400)
+			.json(new CustomError('User has missing information for sign up'));
+	}
 
-    // TODO: use middlewares
-    User
-        .findOne({ username: signupForm.username })
-        .then((foundUserByUsername) => {
-            if (foundUserByUsername !== null) {
-                return res.status(400).json(new CustomError('This username already exists'));
-            }
-            User
-                .findOne({ email: signupForm.email })
-                .then(async (foundUser) => {
-                    if (foundUser !== null) {
-                        return res.status(400).json(
-                            new CustomError('This email is already being used by another user')
-                        );
-                    }
+	// TODO: use middlewares
+	User.findOne({ username: signupForm.username })
+		.then((foundUserByUsername) => {
+			if (foundUserByUsername !== null) {
+				return res
+					.status(400)
+					.json(new CustomError('This username already exists'));
+			}
+			User.findOne({ email: signupForm.email })
+				.then(async (foundUser) => {
+					if (foundUser !== null) {
+						return res
+							.status(400)
+							.json(
+								new CustomError(
+									'This email is already being used by another user'
+								)
+							);
+					}
 
-                    const user = new User({
-                        ...signupForm,
-                        password: await hash(signupForm.password, 8)
-                    });
-                
-                    user
-                        .save()
-                        .then((savedUser) => {
-                            sign({ savedUser }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
-                                res.status(200).json({
-                                    // @ts-ignore
-                                    user: {...savedUser._doc, password:undefined},
-                                    token
-                                });
-                            });
-                        })
-                        .catch((err) => res.status(500).json(
-                            new CustomError('Could not save user to database', err)
-                        ));
-                })
-                .catch((err) => res.status(500).json(
-                    new CustomError('Could not find user by email', err)
-                ));
-        })
-        .catch((err) => res.status(500).json(new CustomError('Could not find user by username', err)));
+					const user = new User({
+						...signupForm,
+						password: await hash(signupForm.password, 8),
+					});
+
+					user
+						.save()
+						.then((savedUser) => {
+							sign(
+								{ savedUser },
+								process.env.JWTSECRET!,
+								{ expiresIn: 31556926 },
+								(err, token) => {
+									res.status(200).json({
+										// @ts-ignore
+										user: { ...savedUser._doc, password: undefined },
+										token,
+									});
+								}
+							);
+						})
+						.catch((err) =>
+							res
+								.status(500)
+								.json(new CustomError('Could not save user to database', err))
+						);
+				})
+				.catch((err) =>
+					res
+						.status(500)
+						.json(new CustomError('Could not find user by email', err))
+				);
+		})
+		.catch((err) =>
+			res
+				.status(500)
+				.json(new CustomError('Could not find user by username', err))
+		);
 });
 
 authRouter.route('/signin').post((req, res) => {
+	const signinForm: SigninForm = req.body;
 
-    const signinForm: SigninForm = req.body;
-    
-    User
-        .findOne({ username: signinForm.username })
-        .then(async (foundUser) => {
-            if (foundUser === null) {
-                return res.status(404).json(new CustomError('User not found'));
-            }
-            
-            const isValidPassword = await compare(
-                signinForm.password,
-                foundUser.password
-            );
+	User.findOne({ username: signinForm.username })
+		.then(async (foundUser) => {
+			if (foundUser === null) {
+				return res.status(404).json(new CustomError('User not found'));
+			}
 
-            if (!isValidPassword) {
-                return res.status(400).json(new CustomError('Invalid password'));
-            }
+			const isValidPassword = await compare(
+				signinForm.password,
+				foundUser.password
+			);
 
-            sign({ user: foundUser }, process.env.JWTSECRET!, { expiresIn: 31556926 }, (err, token) => {
-                if (err) {
-                    return res.status(500).json(new CustomError('Could not sign token', err));
-                }
+			if (!isValidPassword) {
+				return res.status(400).json(new CustomError('Invalid password'));
+			}
 
-                res.status(200).json({
-                    // @ts-ignore
-                    user: {...foundUser._doc, password:undefined},
-                    token
-                });
-            });
-        })
-        .catch((err) => res.status(500).json(new CustomError('Could not find user by username', err)));
+			sign(
+				{ user: foundUser },
+				process.env.JWTSECRET!,
+				{ expiresIn: 31556926 },
+				(err, token) => {
+					if (err) {
+						return res
+							.status(500)
+							.json(new CustomError('Could not sign token', err));
+					}
+
+					res.status(200).json({
+						// @ts-ignore
+						user: { ...foundUser._doc, password: undefined },
+						token,
+					});
+				}
+			);
+		})
+		.catch((err) =>
+			res
+				.status(500)
+				.json(new CustomError('Could not find user by username', err))
+		);
 });
 
 authRouter.route('/signinFromToken').post((req, res) => {
-    const token = req.body.token;
+	const token = req.body.token;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return verify(token, process.env.JWTSECRET!, (err: any, decoded: any) => {
-        if (err) {
-            return res.status(500).json(new CustomError('Unable to verify token'));
-        }
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	return verify(token, process.env.JWTSECRET!, (err: any, decoded: any) => {
+		if (err) {
+			return res.status(500).json(new CustomError('Unable to verify token'));
+		}
 
-        if (decoded.exp <= Date.now() / 1000) {
-            return res.status(400).json(new CustomError('Token expired'));
-        }
+		if (decoded.exp <= Date.now() / 1000) {
+			return res.status(400).json(new CustomError('Token expired'));
+		}
 
-        User
-            .findById(decoded.user._id)
-            .then((foundUser) => {
-                if (foundUser === null) {
-                    return res.status(404);
-                }
+		User.findById(decoded.user._id)
+			.then((foundUser) => {
+				if (foundUser === null) {
+					return res.status(404);
+				}
 
-                // @ts-ignore
-                res.status(200).json({...foundUser._doc, password: undefined});
-            })
-            .catch((err) => {
-                res.status(500).json(new CustomError('Could not find user by id', err));
-            });
-    });
+				// @ts-ignore
+				res.status(200).json({ ...foundUser._doc, password: undefined });
+			})
+			.catch((err) => {
+				res.status(500).json(new CustomError('Could not find user by id', err));
+			});
+	});
 });
 
 authRouter.route('/restricted').get((req, res) => {
-    const token = req.headers['x-access-token'] as string | undefined;
+	const token = req.headers['x-access-token'] as string | undefined;
 
-    if (!token) {
-        return res.status(400).json(new CustomError('No token provided'));
-    }
+	if (!token) {
+		return res.status(400).json(new CustomError('No token provided'));
+	}
 
-    verify(token, process.env.JWTSECRET!, (err, decoded) => {
-        if (err) {
-            return res.status(500).json(new CustomError('Unable to verify token'));
-        }
+	verify(token, process.env.JWTSECRET!, (err, decoded) => {
+		if (err) {
+			return res.status(500).json(new CustomError('Unable to verify token'));
+		}
 
-        res.status(200).json(decoded);
-    });
+		res.status(200).json(decoded);
+	});
 });
 
 export default authRouter;

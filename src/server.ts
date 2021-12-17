@@ -5,14 +5,13 @@ import dotenv from 'dotenv';
 import recipeRouter from './routes/recipe.route';
 import authRouter from './routes/auth.route';
 import userRouter from './routes/user.route';
-import weekPlanRouter from './routes/weekPlan.route';
 import mealPlanRouter from './routes/mealPlan.route';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 if (process.env.NODE_ENV !== 'production') {
-    dotenv.config();
+	dotenv.config();
 }
 
 const db = connectDB(process.env.MONGODB_URI);
@@ -22,19 +21,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.get('/', (req, res) => {
-    let welcomeString = 'Hello from server!';
-    if (db) {
-        welcomeString += ' | Database connected!';
-    }
-    res.send(welcomeString);
+	let welcomeString = 'Hello from server!';
+	if (db) {
+		welcomeString += ' | Database connected!';
+	}
+	res.send(welcomeString);
 });
 
 app.use('/recipes', recipeRouter);
 app.use('/auth', authRouter);
 app.use('/user', userRouter);
-app.use('/weekPlan', weekPlanRouter);
 app.use('/mealPlan', mealPlanRouter);
 
 app.listen(PORT, () =>
-    console.log(`Server is running on http://localhost:${PORT}`)
+	console.log(`Server is running on http://localhost:${PORT}`)
 );

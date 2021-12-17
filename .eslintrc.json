@@ -1,39 +1,23 @@
 {
-    "env": {
-        "commonjs": true,
-        "es2021": true,
-        "node": true
-    },
-    "extends": [
-        "eslint:recommended",
-        "plugin:@typescript-eslint/recommended"
-    ],
-    "parserOptions": {
-        "ecmaVersion": 12,
-        "parser": "@typescript-eslint/parser"
-    },
-    "plugins": [
-        "@typescript-eslint"
-    ],
-    "rules": {
-        "indent": [
-            "warn",
-            4
-        ],
-        "linebreak-style": [
-            "warn",
-            "windows"
-        ],
-        "quotes": [
-            "warn",
-            "single"
-        ],
-        "semi": [
-            "warn",
-            "always"
-        ],
-        "@typescript-eslint/no-non-null-assertion": "off",
-        "@typescript-eslint/ban-ts-comment": "off",
-        "@typescript-eslint/no-explicit-any": "off"
-    }
+	"env": {
+		"commonjs": true,
+		"es2021": true,
+		"node": true
+	},
+	"extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+	"parserOptions": {
+		"ecmaVersion": 12,
+		"parser": "@typescript-eslint/parser"
+	},
+	"plugins": ["@typescript-eslint"],
+	"rules": {
+		"indent": ["off", "tab"],
+		"linebreak-style": ["warn", "windows"],
+		"quotes": ["warn", "single"],
+		"semi": ["warn", "always"],
+		"no-mixed-spaces-and-tabs": "off",
+		"@typescript-eslint/no-non-null-assertion": "off",
+		"@typescript-eslint/ban-ts-comment": "off",
+		"@typescript-eslint/no-explicit-any": "off"
+	}
 }
