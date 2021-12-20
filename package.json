@@ -32,6 +32,7 @@
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.0.4",
+    "nodemailer": "^6.7.2",
     "puppeteer": "^10.2.0"
   },
   "devDependencies": {
@@ -41,6 +42,7 @@
     "@types/jsonwebtoken": "^8.5.5",
     "@types/mongoose": "^5.11.97",
     "@types/node": "^16.7.10",
+    "@types/nodemailer": "^6.4.4",
     "@typescript-eslint/eslint-plugin": "^4.30.0",
     "@typescript-eslint/parser": "^4.30.0",
     "concurrently": "^6.2.1",
