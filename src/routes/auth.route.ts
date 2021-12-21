@@ -84,7 +84,7 @@ authRouter.route('/mail').post((req, res) => {
 		);
 });
 authRouter.route('/signup').post((req, res) => {
-	const signupForm: SignupForm = req.body;
+	const signupForm: SignupForm = req.body.user;
 
 	if (!signupForm || Object.keys(signupForm).length === 0) {
 		return res.status(400).json(new CustomError('Cannot save empty objects'));
@@ -136,7 +136,7 @@ authRouter.route('/signup').post((req, res) => {
 							confirmationUrl.searchParams.append('code', confirmationCode);
 
 							sendMail({
-								to: 'pep.carmona.coll@gmail.com',
+								to: savedUser.email,
 								html: `
 								<div style="
 									background-image: url('https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870&q=80');
