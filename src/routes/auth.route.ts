@@ -341,7 +341,24 @@ authRouter.route('/verifyUser').get((req, res) => {
 					.json(new CustomError('Error finding user with confirmation code'));
 			}
 
-			res.status(200).json(updatedUser);
+			sign(
+				{ user: updatedUser },
+				process.env.JWTSECRET!,
+				{ expiresIn: 31556926 },
+				(err, token) => {
+					if (err) {
+						return res
+							.status(500)
+							.json(new CustomError('Could not sign token', err));
+					}
+
+					res.status(200).json({
+						// @ts-ignore
+						user: { ...updatedUser._doc, password: undefined },
+						token,
+					});
+				}
+			);
 		})
 		.catch((err) =>
 			res
