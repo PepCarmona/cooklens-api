@@ -1,12 +1,12 @@
 import { IRecipe } from '../models/recipe.model';
 import { getTimeFromString } from '../helpers/dateTime';
 import puppeteer from 'puppeteer';
-import { integratedSite } from './sites';
+import { integratedSite, integratedSites } from './sites';
 import { sanitizeWhiteSpaces } from '../helpers/string';
 import { RecipeTime, Ingredient, Step, Tag } from 'cooklens-types';
 
 export interface RecipeIntegrationInterface extends IRecipe {
-	populate(site: integratedSite): Promise<void>;
+	populate(): Promise<void>;
 }
 
 export class RecipeIntegration implements RecipeIntegrationInterface {
@@ -20,6 +20,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 	tags!: Tag[];
 	images!: any[];
 	rating = 0;
+	isIntegrated = false;
 
 	constructor(url: string) {
 		this.url = url;
@@ -31,7 +32,26 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 		};
 	}
 
-	async populate(site: integratedSite): Promise<void> {
+	public async populate() {
+		let url: URL;
+
+		try {
+			url = new URL(this.url);
+		} catch {
+			return Promise.reject('URL could not be parsed');
+		}
+
+		const site = integratedSites.find((site) => site.url === url.hostname);
+
+		if (site) {
+			await this.populateIntegrated(site);
+			return;
+		}
+
+		await this.populateLink();
+	}
+
+	private async populateIntegrated(site: integratedSite): Promise<void> {
 		const browser = await puppeteer.launch({
 			args: ['--no-sandbox', '--disable-setuid-sandbox'],
 		});
@@ -214,6 +234,21 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 					? parseInt(stringQuantity[index]!)
 					: 0)
 		);
+
+		this.isIntegrated = true;
+
+		await browser.close();
+	}
+
+	private async populateLink(): Promise<void> {
+		const browser = await puppeteer.launch({
+			args: ['--no-sandbox', '--disable-setuid-sandbox'],
+		});
+		const page = await browser.newPage();
+
+		await page.goto(this.url);
+
+		this.title = await page.title();
 
 		await browser.close();
 	}

@@ -1,6 +1,5 @@
 import express from 'express';
 import { CallbackError } from 'mongoose';
-import { URL } from 'url';
 import { CustomError } from '../helpers/errors';
 import { paginate } from '../helpers/pagination';
 import { RecipeIntegration } from '../integration';
@@ -176,26 +175,11 @@ recipeRouter.route('/import').get((req, res) => {
 	}
 
 	const urlString = String(req.query.url);
-	let url: URL | null = null;
-
-	try {
-		url = new URL(urlString);
-	} catch {
-		return res.status(500).json(new CustomError('URL could not be parsed'));
-	}
-
-	const site = integratedSites.find((site) => site.url === url?.hostname);
-
-	if (!site) {
-		return res
-			.status(501)
-			.json(new CustomError('This site is not integrated yet'));
-	}
 
 	const recipe = new RecipeIntegration(urlString);
 
 	recipe
-		.populate(site)
+		.populate()
 		.then(() => {
 			if (recipe === null) {
 				return res

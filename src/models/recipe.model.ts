@@ -1,7 +1,7 @@
 import { Document, model, Schema } from 'mongoose';
 import { RecipeTime, Ingredient, Step, Tag, Recipe } from 'cooklens-types';
 
-export type IRecipe = Omit<Recipe, '_id'>;
+export type IRecipe = Omit<Recipe, '_id'> & { isIntegrated: boolean };
 
 const RecipeTimeSchema = new Schema<RecipeTime>(
 	{
@@ -71,6 +71,7 @@ const RecipeSchema = new Schema<IRecipe>({
 		type: Schema.Types.ObjectId,
 		ref: 'User',
 	},
+	isIntegrated: Boolean,
 });
 
 export interface RecipeDocument extends IRecipe, Document {}
