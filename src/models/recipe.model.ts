@@ -1,7 +1,7 @@
 import { Document, model, Schema } from 'mongoose';
 import { RecipeTime, Ingredient, Step, Tag, Recipe } from 'cooklens-types';
 
-export type IRecipe = Omit<Recipe, '_id'> & { isIntegrated: boolean };
+export type IRecipe = Omit<Recipe, '_id'>;
 
 const RecipeTimeSchema = new Schema<RecipeTime>(
 	{
