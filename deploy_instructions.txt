@@ -1,0 +1,29 @@
+1- Connect to server:
+	· ssh -i ~/Documents/Projects/aws_key_pair_eu.pem ubuntu@ec2-35-180-69-130.eu-west-3.compute.amazonaws.com
+
+2- Deploy:
+	2.1- API:
+		· sudo git clone https://github.com/PepCarmona/cooklens-api /opt/cooklens/api
+		· cd /opt/cooklens/api
+		· sudo npm install
+		· sudo npm install puppeteer --unsafe-perm
+		· sudo tsc
+		· (pm2 start dist/server.js --name cooklens-api --watch --time)
+		·
+	2.2- SITE:
+		· sudo git clone https://github.com/PepCarmona/cooklens-site /opt/cooklens/site
+		· cd /opt/cooklens/site
+		· sudo npm install
+		· sudo npm run build
+
+3- Update:
+	3.1- API:
+		· cd /opt/cooklens/api
+		· sudo git pull https://github.com/PepCarmona/cooklens-api master
+		· sudo npm install
+		· sudo tsc
+	3.2- SITE:
+		· cd /opt/cooklens/site
+		· sudo git pull https://github.com/PepCarmona/cooklens-site master
+		· sudo npm install
+		· sudo npm run build
