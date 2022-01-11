@@ -28,10 +28,13 @@ app.get('/', (req, res) => {
 	res.send(welcomeString);
 });
 
-app.use('/recipes', recipeRouter);
-app.use('/auth', authRouter);
-app.use('/user', userRouter);
-app.use('/mealPlan', mealPlanRouter);
+const router = express.Router();
+router.use('/recipes', recipeRouter);
+router.use('/auth', authRouter);
+router.use('/user', userRouter);
+router.use('/mealPlan', mealPlanRouter);
+
+app.use('/api', router);
 
 app.listen(PORT, () =>
 	console.log(`Server is running on http://localhost:${PORT}`)

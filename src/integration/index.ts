@@ -10,10 +10,10 @@ export interface RecipeIntegrationInterface extends IRecipe {
 }
 
 export class RecipeIntegration implements RecipeIntegrationInterface {
-	url!: string;
+	url: string;
 	title!: string;
 	description?: string;
-	time!: RecipeTime;
+	time?: RecipeTime;
 	servings = 4;
 	ingredients!: Ingredient[];
 	instructions!: Step[];
@@ -26,10 +26,6 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 		this.url = url;
 
 		this.title = '';
-		this.time = {
-			preparation: 0,
-			cooking: 5,
-		};
 	}
 
 	public async populate() {
