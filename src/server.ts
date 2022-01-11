@@ -14,17 +14,15 @@ if (process.env.NODE_ENV !== 'production') {
 	dotenv.config();
 }
 
-const db = connectDB(process.env.MONGODB_URI);
+connectDB(process.env.MONGODB_URI);
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.get('/', (req, res) => {
-	let welcomeString = 'Hello from server!';
-	if (db) {
-		welcomeString += ' | Database connected!';
-	}
+app.get('/api', (req, res) => {
+	const welcomeString =
+		'Hello from EC2 server! I am an Nginx reserve proxy server made by PepCarmona';
 	res.send(welcomeString);
 });
 
