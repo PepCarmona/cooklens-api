@@ -31,4 +31,4 @@ jobs:
         run: ssh aws 'cd /opt/cooklens/api && sudo git pull origin master'
         
       - name: Build
-        run: ssh aws 'cd /opt/cooklens/api && sudo npm install && sudo tsc'
+        run: ssh aws 'cd /opt/cooklens/api && sudo npm install && sudo tsc && echo Build succeed!'
