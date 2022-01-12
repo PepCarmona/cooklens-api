@@ -12,10 +12,11 @@ jobs:
     steps:
       # Runs a single command using the runners shell
       - name: SSH into EC2 server
-        run: echo ${{ secrets.AWS_PUBLIC_DNS }}
+        run: ssh -i ${{ secrets.AWS_KEY }} ${{ secrets.AWS_PUBLIC_DNS }}
 
       # Runs a set of commands using the runners shell
-      - name: Move to API directory
+      - name: Run checks
         run: |
-          echo Move to directory inside server.
-          echo /opt/cooklens/api.
+          node -v
+          cd /opt
+          ls
