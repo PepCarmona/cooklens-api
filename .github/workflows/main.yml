@@ -13,9 +13,8 @@ jobs:
       # Runs a single command using the runners shell
       - name: SSH into EC2 server
         run: |
-          ls /opt
-          echo ${{ secrets.AWS_KEY }} | sudo tee /opt/key.txt
-          ls /opt
+          echo "${{ secrets.AWS_KEY }}" | sudo tee /opt/key.txt
+          cat /opt/key.txt
 
       # Runs a set of commands using the runners shell
       - name: Run checks
