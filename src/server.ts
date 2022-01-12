@@ -22,7 +22,7 @@ app.use(express.json());
 
 app.get('/api', (req, res) => {
 	const welcomeString =
-		'Hello from EC2 server! I am an Nginx reserve proxy server made by PepCarmona';
+		'Hello from EC2 server! I am an Nginx reserve proxy server auto deployed by Github Actions (made by PepCarmona)';
 	res.send(welcomeString);
 });
 
