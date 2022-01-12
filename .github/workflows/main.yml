@@ -12,7 +12,10 @@ jobs:
     steps:
       # Runs a single command using the runners shell
       - name: SSH into EC2 server
-        run: ssh -i ${{ secrets.AWS_KEY }} ${{ secrets.AWS_PUBLIC_DNS }}
+        run: |
+          echo ${{ secrets.AWS_KEY }} | sudo tee key.txt
+          cat key.txt
+          ssh -i key.txt ${{ secrets.AWS_PUBLIC_DNS }}
 
       # Runs a set of commands using the runners shell
       - name: Run checks
