@@ -27,5 +27,8 @@ jobs:
           SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
           SSH_HOST: ${{ secrets.AWS_SSH_HOST }}
 
-      - name: Run checks
-        run: ssh aws 'node -v && ls /opt'
+      - name: Update local repository
+        run: ssh aws 'cd /opt/cooklens/api && sudo git pull origin master'
+        
+      - name: Build
+        run: ssh aws 'sudo npm install && sudo tsc'
