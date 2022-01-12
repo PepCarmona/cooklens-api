@@ -10,11 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Runs a single command using the runners shell
-      - name: SSH into EC2 server
+      - name: Configure SSH
         run: |
-          echo "${{ secrets.AWS_KEY }}" | sudo tee /opt/key.txt
-          ssh -i /opt/key.txt ${{ secrets.AWS_PUBLIC_DNS }}
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/staging.key
+          chmod 600 ~/.ssh/staging.key
+          cat >>~/.ssh/config <<END
+          Host aws
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/staging.key
+            StrictHostKeyChecking no
+          END
+        env:
+          SSH_USER: ${{ secrets.AWS_SSH_USER }}
+          SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
+          SSH_HOST: ${{ secrets.AWS_SSH_HOST }}
+          
+      - name: SSH into EC2 server
+        run: ssh aws 'ls /opt'
 
       # Runs a set of commands using the runners shell
       - name: Run checks
