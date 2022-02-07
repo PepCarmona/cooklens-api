@@ -3,7 +3,6 @@ import { CallbackError } from 'mongoose';
 import { CustomError } from '../helpers/errors';
 import { paginate } from '../helpers/pagination';
 import { RecipeIntegration } from '../integration';
-import { integratedSites } from '../integration/sites';
 import Recipe, { IRecipe } from '../models/recipe.model';
 
 const recipeRouter = express.Router();
@@ -167,7 +166,7 @@ recipeRouter.route('/delete').delete((req, res) => {
 		});
 });
 
-recipeRouter.route('/import').get((req, res) => {
+recipeRouter.route('/import').get(async (req, res) => {
 	if (!req.query.url) {
 		return res
 			.status(400)
@@ -216,23 +215,13 @@ recipeRouter.route('/import').get((req, res) => {
 				);
 		})
 		.catch((err) =>
-			res
-				.status(500)
-				.json(
-					new CustomError(
-						'Recipe integration failed. Could not populate provided URL',
-						err
-					)
-				)
+			res.status(500).json(new CustomError('Recipe integration failed', err))
 		);
 });
 
+// @deprecated
 recipeRouter.route('/integrated-sites').get((req, res) => {
-	if (!integratedSites) {
-		return res.status(404);
-	}
-
-	res.status(200).json(integratedSites);
+	res.status(500).json(new CustomError('Endpoint deprecated'));
 });
 
 export default recipeRouter;

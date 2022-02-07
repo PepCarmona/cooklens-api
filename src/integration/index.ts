@@ -1,12 +1,48 @@
 import { IRecipe } from '../models/recipe.model';
 import { getTimeFromString } from '../helpers/dateTime';
-import puppeteer from 'puppeteer';
-import { integratedSite, integratedSites } from './sites';
-import { sanitizeWhiteSpaces } from '../helpers/string';
 import { RecipeTime, Ingredient, Step, Tag } from 'cooklens-types';
+import scrapeIt from 'scrape-it';
+import { sanitizeWhiteSpaces } from '../helpers/string';
+
+interface Metadata {
+	'@type': string;
+}
+interface RecipeMetadata extends Metadata {
+	name: string;
+	image: {
+		url: string;
+	};
+	description: string;
+	prepTime: string; //P0DT0H30M
+	cookTime: string; //P0DT0H30M
+	totalTime: string; //P0DT0H30M
+	recipeYield: string;
+	recipeIngredient: string[];
+	recipeInstructions: {
+		text: string;
+	}[];
+	recipeCategory: string[];
+	recipeCuisine: string[];
+	author: {
+		name: string;
+		url: string;
+	};
+	aggregateRating: {
+		ratingValue: number;
+		ratingCount: number;
+		bestRating: string;
+		worstRating: string;
+	};
+	video: {
+		name: string;
+		description: string;
+		thumbnailUrl: string;
+		embedUrl: string;
+	};
+}
 
 export interface RecipeIntegrationInterface extends IRecipe {
-	populate(): Promise<void>;
+	populate(): Promise<unknown>;
 }
 
 export class RecipeIntegration implements RecipeIntegrationInterface {
@@ -14,7 +50,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 	title!: string;
 	description?: string;
 	time?: RecipeTime;
-	servings = 4;
+	servings = '4';
 	ingredients!: Ingredient[];
 	instructions!: Step[];
 	tags!: Tag[];
@@ -37,215 +73,55 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 			return Promise.reject('URL could not be parsed');
 		}
 
-		const site = integratedSites.find((site) => site.url === url.hostname);
+		const scrapedResult = await scrapeIt<{ title: string; metadata: string }>(
+			url.toString(),
+			{
+				title: 'title',
+				metadata: '[type="application/ld+json"]',
+			}
+		);
 
-		if (site) {
-			await this.populateIntegrated(site);
+		if (scrapedResult.data.metadata.length === 0) {
+			this.populateAsLink(scrapedResult.data.title);
 			return;
 		}
 
-		await this.populateLink();
+		const metadata: Metadata[] = JSON.parse(scrapedResult.data.metadata);
+
+		const recipeMetadata = metadata.find(
+			(item) => item['@type'] === 'Recipe'
+		) as RecipeMetadata;
+
+		if (recipeMetadata) {
+			this.populateFromMetadata(recipeMetadata);
+		}
 	}
 
-	private async populateIntegrated(site: integratedSite): Promise<void> {
-		const browser = await puppeteer.launch({
-			args: ['--no-sandbox', '--disable-setuid-sandbox'],
-		});
-		const page = await browser.newPage();
-
-		await page.goto(this.url);
-
-		const stringTime: {
-			preparation: string | null;
-			cooking: string | null;
-		} = {
-			preparation: '',
-			cooking: '',
-		};
-
-		let stringServings: string | null = null;
-
-		let stringQuantity: (string | null)[] = [];
-
-		await Promise.all([
-			// Title
-			page
-				.$eval(site.integration.recipeTitle, (x) => x.textContent)
-				.then((title) => {
-					if (!title) {
-						console.error('No title in import URL');
-					}
-
-					this.title = title ?? '';
-				}),
-
-			// Description
-			site.integration.recipeDescription
-				? page
-						.$eval(site.integration.recipeDescription, (x) => x.textContent)
-						.then((description) => (this.description = description ?? ''))
-				: (this.description = ''),
-
-			// Preparation Time
-			site.integration.recipePrepTime
-				? page
-						.$eval(site.integration.recipePrepTime, (x) => x.textContent)
-						.then((prepTime) => (stringTime.preparation = prepTime))
-				: (stringTime.preparation = ''),
-
-			// Cooking Time
-			site.integration.recipeCookTime
-				? page
-						.$eval(site.integration.recipeCookTime, (x) => x.textContent)
-						.then((cookingTime) => (stringTime.cooking = cookingTime))
-				: (stringTime.cooking = ''),
-			// Servings
-			site.integration.recipeServings
-				? page
-						.$eval(site.integration.recipeServings, (x) => x.textContent)
-						.then(
-							(servings) =>
-								(stringServings =
-									['simplyRecipes'].includes(site.name) && servings
-										? servings.replace(/(servings)| /g, '')
-										: servings)
-						)
-				: (stringServings = '4'),
-
-			// Ingredients
-			page
-				.$$eval(site.integration.recipeIngredients, (X) =>
-					X.map((x) => {
-						return {
-							name: x.textContent,
-							quantity: x.previousElementSibling?.textContent,
-						};
-					})
-				)
-				.then(
-					(ingredients) =>
-						(this.ingredients = ingredients.some(
-							(ingredient) => ingredient.name! === null
-						)
-							? []
-							: ingredients.map((ingredient) => {
-									return {
-										quantity: 0,
-										name: ['delish'].includes(site.name)
-											? ingredient.quantity
-												? sanitizeWhiteSpaces(ingredient.quantity) +
-												  ' ' +
-												  sanitizeWhiteSpaces(ingredient.name!)
-												: sanitizeWhiteSpaces(ingredient.name!)
-											: sanitizeWhiteSpaces(ingredient.name!),
-									};
-							  }))
-				),
-
-			// Ingredients Quantity
-			site.integration.recipeIngredientsQuantity
-				? page
-						.$$eval(site.integration.recipeIngredientsQuantity, (X) =>
-							X.map((x) => x.textContent!)
-						)
-						.then((quantity) => (stringQuantity = quantity))
-				: (stringQuantity = []),
-
-			// Instructions
-			page
-				.$$eval(site.integration.recipeInstructions, (X) =>
-					X.map((x) => {
-						return {
-							default: x.textContent,
-							simplyRecipes: Array.from(x.getElementsByTagName('p')).reduce(
-								(total, current) => (total += current.textContent),
-								''
-							),
-						};
-					})
-				)
-				.then(
-					(instructions) =>
-						(this.instructions = instructions.some((step) => step === null)
-							? []
-							: instructions.map((step, index) => {
-									return {
-										position: index + 1,
-										content:
-											site.name === 'simplyRecipes'
-												? sanitizeWhiteSpaces(step.simplyRecipes)
-												: sanitizeWhiteSpaces(step.default!),
-									};
-							  }))
-				),
-
-			// Tags
-			site.integration.recipeTags
-				? page
-						.$$eval(site.integration.recipeTags, (X) =>
-							X.map((x) => x.textContent!)
-						)
-						.then(
-							(tags) =>
-								(this.tags = tags.map((tag) => {
-									return { value: tag };
-								}))
-						)
-				: (this.tags = []),
-
-			// Image
-			site.integration.images
-				? page
-						.$$eval(site.integration.images!, (X) =>
-							X.map((x) => {
-								return {
-									default: x.getAttribute('src')!,
-									delish: x.getAttribute('data-src')!,
-								};
-							})
-						)
-						.then(
-							(images) =>
-								(this.images = ['delish', 'simplyRecipes'].includes(site.name)
-									? images.map((i) => i.delish)
-									: images.map((i) => i.default))
-						)
-				: (this.images = []),
-		]);
-
+	private populateFromMetadata(metadata: RecipeMetadata) {
+		this.title = metadata.name;
+		this.description = metadata.description;
 		this.time = {
-			preparation: getTimeFromString(stringTime.preparation, site),
-			cooking:
-				site.name === 'delish'
-					? getTimeFromString(stringTime.cooking, site) -
-					  getTimeFromString(stringTime.preparation, site)
-					: getTimeFromString(stringTime.cooking, site),
+			preparation: getTimeFromString(metadata.prepTime),
+			cooking: getTimeFromString(metadata.cookTime),
 		};
-
-		this.servings = stringServings ? parseInt(stringServings) : 4;
-
-		this.ingredients.map(
-			(ingredient, index) =>
-				(ingredient.quantity = stringQuantity[index]
-					? parseInt(stringQuantity[index]!)
-					: 0)
-		);
-
+		this.servings = metadata.recipeYield;
+		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
+		this.instructions = metadata.recipeInstructions.map((x, i) => ({
+			content: sanitizeWhiteSpaces(x.text),
+			position: i + 1,
+		}));
+		this.tags = [
+			...new Set(metadata.recipeCategory.concat(metadata.recipeCuisine)),
+		].map((x) => ({ value: x }));
+		this.images = [metadata.image.url];
+		this.rating =
+			(metadata.aggregateRating.ratingValue /
+				parseInt(metadata.aggregateRating.bestRating)) *
+			5;
 		this.isIntegrated = true;
-
-		await browser.close();
 	}
 
-	private async populateLink(): Promise<void> {
-		const browser = await puppeteer.launch({
-			args: ['--no-sandbox', '--disable-setuid-sandbox'],
-		});
-		const page = await browser.newPage();
-
-		await page.goto(this.url);
-
-		this.title = await page.title();
-
-		await browser.close();
+	private populateAsLink(title: string) {
+		this.title = title;
 	}
 }
