@@ -1,21 +1,33 @@
 import { IRecipe } from '../models/recipe.model';
-import { getTimeFromString } from '../helpers/dateTime';
+import { getTimeFromMetadataString } from '../helpers/dateTime';
 import { RecipeTime, Ingredient, Step, Tag } from 'cooklens-types';
 import scrapeIt from 'scrape-it';
 import { sanitizeWhiteSpaces } from '../helpers/string';
 
 interface Metadata {
-	'@type': string;
+	'@type': string | string[];
+}
+
+interface AuthorMetadata extends Metadata {
+	'@type': 'Person';
+	name: string;
+	description?: string;
+	url: string;
+}
+
+interface ImageMetadata extends Metadata {
+	'@type': 'ImageObject';
+	url: string;
+	height: number;
+	width: number;
 }
 interface RecipeMetadata extends Metadata {
 	name: string;
-	image: {
-		url: string;
-	};
+	image: ImageMetadata | ImageMetadata[];
 	description: string;
-	prepTime: string; //P0DT0H30M
-	cookTime: string; //P0DT0H30M
-	totalTime: string; //P0DT0H30M
+	prepTime: string; //P0DT0H30M | PT20M
+	cookTime: string; //P0DT0H30M | PT20M
+	totalTime: string; //P0DT0H30M | PT20M
 	recipeYield: string;
 	recipeIngredient: string[];
 	recipeInstructions: {
@@ -23,11 +35,8 @@ interface RecipeMetadata extends Metadata {
 	}[];
 	recipeCategory: string[];
 	recipeCuisine: string[];
-	author: {
-		name: string;
-		url: string;
-	};
-	aggregateRating: {
+	author: AuthorMetadata | AuthorMetadata[];
+	aggregateRating?: {
 		ratingValue: number;
 		ratingCount: number;
 		bestRating: string;
@@ -86,38 +95,60 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 			return;
 		}
 
-		const metadata: Metadata[] = JSON.parse(scrapedResult.data.metadata);
+		const metadata: Metadata | Metadata[] = JSON.parse(
+			scrapedResult.data.metadata
+		);
 
-		const recipeMetadata = metadata.find(
-			(item) => item['@type'] === 'Recipe'
-		) as RecipeMetadata;
+		const recipeMetadata = Array.isArray(metadata)
+			? (metadata.find(
+					(item) =>
+						item['@type'] === 'Recipe' || item['@type'].includes('Recipe')
+			  ) as RecipeMetadata)
+			: metadata['@type'].includes('Recipe')
+			? (metadata as RecipeMetadata)
+			: null;
 
 		if (recipeMetadata) {
 			this.populateFromMetadata(recipeMetadata);
+			return;
 		}
+
+		this.populateAsLink(scrapedResult.data.title);
 	}
 
 	private populateFromMetadata(metadata: RecipeMetadata) {
 		this.title = metadata.name;
+
 		this.description = metadata.description;
+
 		this.time = {
-			preparation: getTimeFromString(metadata.prepTime),
-			cooking: getTimeFromString(metadata.cookTime),
+			preparation: getTimeFromMetadataString(metadata.prepTime),
+			cooking: getTimeFromMetadataString(metadata.cookTime),
 		};
+
 		this.servings = metadata.recipeYield;
+
 		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
+
 		this.instructions = metadata.recipeInstructions.map((x, i) => ({
 			content: sanitizeWhiteSpaces(x.text),
 			position: i + 1,
 		}));
+
 		this.tags = [
 			...new Set(metadata.recipeCategory.concat(metadata.recipeCuisine)),
 		].map((x) => ({ value: x }));
-		this.images = [metadata.image.url];
-		this.rating =
-			(metadata.aggregateRating.ratingValue /
-				parseInt(metadata.aggregateRating.bestRating)) *
-			5;
+
+		this.images = Array.isArray(metadata.image)
+			? metadata.image.map((x) => x.url)
+			: [metadata.image.url];
+
+		this.rating = metadata.aggregateRating
+			? (metadata.aggregateRating.ratingValue /
+					parseInt(metadata.aggregateRating.bestRating)) *
+			  5
+			: 0;
+
 		this.isIntegrated = true;
 	}
 
