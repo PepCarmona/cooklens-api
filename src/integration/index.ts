@@ -21,26 +21,28 @@ interface ImageMetadata extends Metadata {
 	height: number;
 	width: number;
 }
+
+interface IngredientMetadata extends Metadata {
+	text: string;
+}
 interface RecipeMetadata extends Metadata {
 	name: string;
-	image: ImageMetadata | ImageMetadata[];
+	image: string | string[] | ImageMetadata | ImageMetadata[];
 	description: string;
 	prepTime: string; //P0DT0H30M | PT20M
 	cookTime: string; //P0DT0H30M | PT20M
 	totalTime: string; //P0DT0H30M | PT20M
 	recipeYield: string;
 	recipeIngredient: string[];
-	recipeInstructions: {
-		text: string;
-	}[];
-	recipeCategory: string | string[];
+	recipeInstructions: string[] | IngredientMetadata[];
+	recipeCategory?: string | string[];
 	recipeCuisine?: string | string[];
 	author: AuthorMetadata | AuthorMetadata[];
 	aggregateRating?: {
 		ratingValue: number;
 		ratingCount: number;
-		bestRating: string;
-		worstRating: string;
+		bestRating?: string;
+		worstRating?: string;
 	};
 	video: {
 		name: string;
@@ -127,13 +129,13 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
 
 		this.instructions = metadata.recipeInstructions.map((x, i) => ({
-			content: sanitizeWhiteSpaces(x.text),
+			content: sanitizeWhiteSpaces(typeof x === 'string' ? x : x.text),
 			position: i + 1,
 		}));
 
 		const categoryArray: string[] = Array.isArray(metadata.recipeCategory)
 			? metadata.recipeCategory
-			: metadata.recipeCategory.split(', ');
+			: metadata.recipeCategory?.split(', ') ?? [];
 
 		const cuisineArray: string[] = Array.isArray(metadata.recipeCuisine)
 			? metadata.recipeCuisine
@@ -144,13 +146,19 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 		}));
 
 		this.images = Array.isArray(metadata.image)
-			? metadata.image.map((x) => x.url)
+			? metadata.image.map((x) => (typeof x === 'string' ? x : x.url))
+			: typeof metadata.image === 'string'
+			? [metadata.image]
 			: [metadata.image.url];
 
 		this.rating = metadata.aggregateRating
-			? (metadata.aggregateRating.ratingValue /
-					parseInt(metadata.aggregateRating.bestRating)) *
-			  5
+			? metadata.aggregateRating.bestRating
+				? (metadata.aggregateRating.ratingValue /
+						parseInt(metadata.aggregateRating.bestRating)) *
+				  5
+				: metadata.aggregateRating.ratingValue > 5
+				? 0
+				: metadata.aggregateRating.ratingValue
 			: 0;
 
 		this.isIntegrated = true;
