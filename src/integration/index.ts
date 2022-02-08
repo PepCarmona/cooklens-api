@@ -7,13 +7,15 @@ import { tryJsonParse } from '../helpers/json';
 
 interface Metadata {
 	'@type': string | string[];
+	'@context': string;
+	'@graph': Metadata[];
 }
 
 interface AuthorMetadata extends Metadata {
 	'@type': 'Person';
 	name: string;
 	description?: string;
-	url: string;
+	url?: string;
 }
 
 interface ImageMetadata extends Metadata {
@@ -23,7 +25,8 @@ interface ImageMetadata extends Metadata {
 	width: number;
 }
 
-interface IngredientMetadata extends Metadata {
+interface InstructionMetadata extends Metadata {
+	'@type': 'HowToStep';
 	text: string;
 }
 interface RecipeMetadata extends Metadata {
@@ -35,12 +38,12 @@ interface RecipeMetadata extends Metadata {
 		| ImageMetadata
 		| ImageMetadata[];
 	description: string;
-	prepTime: string; //P0DT0H30M | PT20M
-	cookTime: string; //P0DT0H30M | PT20M
-	totalTime: string; //P0DT0H30M | PT20M
-	recipeYield: string;
+	prepTime?: string; //P0DT0H30M | PT20M
+	cookTime?: string; //P0DT0H30M | PT20M
+	totalTime?: string; //P0DT0H30M | PT20M
+	recipeYield: string | string[];
 	recipeIngredient: string[];
-	recipeInstructions: string | string[] | IngredientMetadata[];
+	recipeInstructions: string | string[] | InstructionMetadata[];
 	recipeCategory?: string | string[];
 	recipeCuisine?: string | string[];
 	author: AuthorMetadata | AuthorMetadata[];
@@ -74,6 +77,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 	images!: string[];
 	rating = 0;
 	isIntegrated = false;
+	hasRecipeMetadata = false;
 
 	constructor(url: string) {
 		this.url = url;
@@ -103,22 +107,35 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 			return;
 		}
 
-		const splittedMetadatas: string[] = scrapedResult.data.metadata
-			.replace(/}{/g, '}$delimiter${')
-			.split('$delimiter$');
+		try {
+			const splittedMetadatas: string[] = scrapedResult.data.metadata
+				.replace(/}{/g, '}$delimiter${')
+				.split('$delimiter$');
 
-		const metadatas: Metadata[] = splittedMetadatas.map((x) => tryJsonParse(x));
+			const metadatas: Metadata[] = splittedMetadatas
+				.map((x) => {
+					const m: Metadata = tryJsonParse(x);
+					return m['@graph'] ? m['@graph'] : m;
+				})
+				.flat();
 
-		const recipeMetadata = metadatas.find(
-			(item) => item['@type'] === 'Recipe' || item['@type'].includes('Recipe')
-		) as RecipeMetadata;
+			const recipeMetadata = metadatas.find(
+				(item) => item['@type'] === 'Recipe' || item['@type'].includes('Recipe')
+			) as RecipeMetadata;
 
-		if (recipeMetadata) {
-			this.populateFromMetadata(recipeMetadata);
-			return;
+			if (recipeMetadata) {
+				this.populateFromMetadata(recipeMetadata);
+				return;
+			}
+
+			this.populateAsLink(scrapedResult.data.title);
+		} catch {
+			this.populateAsLink(
+				scrapedResult.data.title,
+				scrapedResult.data.metadata.includes('"@type": "Recipe"') ||
+					scrapedResult.data.metadata.includes('"@type":"Recipe"')
+			);
 		}
-
-		this.populateAsLink(scrapedResult.data.title);
 	}
 
 	private populateFromMetadata(metadata: RecipeMetadata) {
@@ -128,11 +145,17 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 		this.description = metadata.description;
 
 		this.time = {
-			preparation: getTimeFromMetadataString(metadata.prepTime),
-			cooking: getTimeFromMetadataString(metadata.cookTime),
+			preparation: metadata.prepTime
+				? getTimeFromMetadataString(metadata.prepTime)
+				: undefined,
+			cooking: metadata.cookTime
+				? getTimeFromMetadataString(metadata.cookTime)
+				: 0,
 		};
 
-		this.servings = metadata.recipeYield;
+		this.servings = Array.isArray(metadata.recipeYield)
+			? metadata.recipeYield[0]
+			: metadata.recipeYield;
 
 		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
 
@@ -177,10 +200,13 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 			: 0;
 
 		this.isIntegrated = true;
+		this.hasRecipeMetadata = true;
 	}
 
-	private populateAsLink(title: string) {
+	private populateAsLink(title: string, hasMetadata = false) {
 		console.log('populateAsLink');
 		this.title = title;
+
+		this.hasRecipeMetadata = hasMetadata;
 	}
 }
