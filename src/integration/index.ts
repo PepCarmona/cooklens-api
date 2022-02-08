@@ -3,6 +3,7 @@ import { getTimeFromMetadataString } from '../helpers/dateTime';
 import { RecipeTime, Ingredient, Step, Tag } from 'cooklens-types';
 import scrapeIt from 'scrape-it';
 import { sanitizeWhiteSpaces } from '../helpers/string';
+import { tryJsonParse } from '../helpers/json';
 
 interface Metadata {
 	'@type': string | string[];
@@ -27,14 +28,19 @@ interface IngredientMetadata extends Metadata {
 }
 interface RecipeMetadata extends Metadata {
 	name: string;
-	image: string | string[] | ImageMetadata | ImageMetadata[];
+	image:
+		| string
+		| string[]
+		| [string | string[]]
+		| ImageMetadata
+		| ImageMetadata[];
 	description: string;
 	prepTime: string; //P0DT0H30M | PT20M
 	cookTime: string; //P0DT0H30M | PT20M
 	totalTime: string; //P0DT0H30M | PT20M
 	recipeYield: string;
 	recipeIngredient: string[];
-	recipeInstructions: string[] | IngredientMetadata[];
+	recipeInstructions: string | string[] | IngredientMetadata[];
 	recipeCategory?: string | string[];
 	recipeCuisine?: string | string[];
 	author: AuthorMetadata | AuthorMetadata[];
@@ -97,12 +103,13 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 			return;
 		}
 
-		const metadata: Metadata[] = scrapedResult.data.metadata
+		const splittedMetadatas: string[] = scrapedResult.data.metadata
 			.replace(/}{/g, '}$delimiter${')
-			.split('$delimiter$')
-			.map((x) => JSON.parse(x));
+			.split('$delimiter$');
 
-		const recipeMetadata = metadata.find(
+		const metadatas: Metadata[] = splittedMetadatas.map((x) => tryJsonParse(x));
+
+		const recipeMetadata = metadatas.find(
 			(item) => item['@type'] === 'Recipe' || item['@type'].includes('Recipe')
 		) as RecipeMetadata;
 
@@ -115,6 +122,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 	}
 
 	private populateFromMetadata(metadata: RecipeMetadata) {
+		console.log('populateFromMetadata');
 		this.title = metadata.name;
 
 		this.description = metadata.description;
@@ -128,10 +136,17 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 
 		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
 
-		this.instructions = metadata.recipeInstructions.map((x, i) => ({
-			content: sanitizeWhiteSpaces(typeof x === 'string' ? x : x.text),
-			position: i + 1,
-		}));
+		this.instructions = Array.isArray(metadata.recipeInstructions)
+			? metadata.recipeInstructions.map((x, i) => ({
+					content: sanitizeWhiteSpaces(typeof x === 'string' ? x : x.text),
+					position: i + 1,
+			  }))
+			: [
+					{
+						content: metadata.recipeInstructions,
+						position: 1,
+					},
+			  ];
 
 		const categoryArray: string[] = Array.isArray(metadata.recipeCategory)
 			? metadata.recipeCategory
@@ -139,14 +154,14 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 
 		const cuisineArray: string[] = Array.isArray(metadata.recipeCuisine)
 			? metadata.recipeCuisine
-			: metadata.recipeCuisine?.split(', ') ?? [];
+			: metadata.recipeCuisine?.split(', ').filter((x) => x !== '') ?? [];
 
 		this.tags = [...new Set(categoryArray.concat(cuisineArray))].map((x) => ({
 			value: x,
 		}));
 
 		this.images = Array.isArray(metadata.image)
-			? metadata.image.map((x) => (typeof x === 'string' ? x : x.url))
+			? metadata.image.flat().map((x) => (typeof x === 'string' ? x : x.url))
 			: typeof metadata.image === 'string'
 			? [metadata.image]
 			: [metadata.image.url];
@@ -165,6 +180,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 	}
 
 	private populateAsLink(title: string) {
+		console.log('populateAsLink');
 		this.title = title;
 	}
 }
