@@ -205,7 +205,12 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 
 	private populateAsLink(title: string, hasMetadata = false) {
 		console.log('populateAsLink');
-		this.title = title === '403 Forbidden' ? '' : title;
+		this.title = [
+			'403 Forbidden',
+			'Access to this page has been denied.',
+		].includes(title)
+			? ''
+			: title;
 
 		this.hasRecipeMetadata = hasMetadata;
 	}
