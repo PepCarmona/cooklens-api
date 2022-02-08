@@ -33,8 +33,8 @@ interface RecipeMetadata extends Metadata {
 	recipeInstructions: {
 		text: string;
 	}[];
-	recipeCategory: string[];
-	recipeCuisine: string[];
+	recipeCategory: string | string[];
+	recipeCuisine?: string | string[];
 	author: AuthorMetadata | AuthorMetadata[];
 	aggregateRating?: {
 		ratingValue: number;
@@ -63,7 +63,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 	ingredients!: Ingredient[];
 	instructions!: Step[];
 	tags!: Tag[];
-	images!: any[];
+	images!: string[];
 	rating = 0;
 	isIntegrated = false;
 
@@ -95,18 +95,14 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 			return;
 		}
 
-		const metadata: Metadata | Metadata[] = JSON.parse(
-			scrapedResult.data.metadata
-		);
+		const metadata: Metadata[] = scrapedResult.data.metadata
+			.replace(/}{/g, '}$delimiter${')
+			.split('$delimiter$')
+			.map((x) => JSON.parse(x));
 
-		const recipeMetadata = Array.isArray(metadata)
-			? (metadata.find(
-					(item) =>
-						item['@type'] === 'Recipe' || item['@type'].includes('Recipe')
-			  ) as RecipeMetadata)
-			: metadata['@type'].includes('Recipe')
-			? (metadata as RecipeMetadata)
-			: null;
+		const recipeMetadata = metadata.find(
+			(item) => item['@type'] === 'Recipe' || item['@type'].includes('Recipe')
+		) as RecipeMetadata;
 
 		if (recipeMetadata) {
 			this.populateFromMetadata(recipeMetadata);
@@ -135,9 +131,17 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 			position: i + 1,
 		}));
 
-		this.tags = [
-			...new Set(metadata.recipeCategory.concat(metadata.recipeCuisine)),
-		].map((x) => ({ value: x }));
+		const categoryArray: string[] = Array.isArray(metadata.recipeCategory)
+			? metadata.recipeCategory
+			: metadata.recipeCategory.split(', ');
+
+		const cuisineArray: string[] = Array.isArray(metadata.recipeCuisine)
+			? metadata.recipeCuisine
+			: metadata.recipeCuisine?.split(', ') ?? [];
+
+		this.tags = [...new Set(categoryArray.concat(cuisineArray))].map((x) => ({
+			value: x,
+		}));
 
 		this.images = Array.isArray(metadata.image)
 			? metadata.image.map((x) => x.url)
