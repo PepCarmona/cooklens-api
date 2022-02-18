@@ -5,6 +5,8 @@ import { paginate } from '../helpers/pagination';
 import { RecipeIntegration } from '../integration';
 import Recipe, { IRecipe } from '../models/recipe.model';
 import got from 'got';
+import dotenv from 'dotenv';
+import { compareStringsContent } from '../helpers/comparison';
 
 const recipeRouter = express.Router();
 
@@ -220,10 +222,151 @@ recipeRouter.route('/import').get(async (req, res) => {
 		);
 });
 
-recipeRouter.route('/search').get((req, res) => {
-	got(
-		'https://api.edamam.com/api/recipes/v2?type=public&q=*&app_id=c6f57a4d&app_key=e45745fd8d51ccccb947a60c2146e13c&health=dairy-free&cuisineType=American&mealType=Breakfast&dishType=desserts'
-	).then((x) => res.status(200).send(x));
+recipeRouter.route('/explore').get((req, res) => {
+	if (process.env.NODE_ENV !== 'production') {
+		dotenv.config();
+	}
+
+	const allowedHealthTypes = [
+		'alcohol-cocktail',
+		'alcohol-free',
+		'celery-free',
+		'crustacean-free',
+		'dairy-free',
+		'DASH',
+		'egg-free',
+		'fish-free',
+		'fodmap-free',
+		'gluten-free',
+		'immuno-supportive',
+		'keto-friendly',
+		'kidney-friendly',
+		'kosher',
+		'low-fat-abs',
+		'low-potassium',
+		'low-sugar',
+		'lupine-free',
+		'Mediterranean',
+		'mollusk-free',
+		'mustard-free',
+		'no-oil-added',
+		'paleo',
+		'peanut-free',
+		'pescatarian',
+		'pork-free',
+		'red-meat-free',
+		'sesame-free',
+		'shellfish-free',
+		'soy-free',
+		'sugar-conscious',
+		'sulfite-free',
+		'tree-nut-free',
+		'vegan',
+		'vegetarian',
+		'wheat-free',
+	];
+
+	const allowedCuisineTypes = [
+		'American',
+		'Asian',
+		'British',
+		'Caribbean',
+		'Central Europe',
+		'Chinese',
+		'Eastern Europe',
+		'French',
+		'Indian',
+		'Italian',
+		'Japanese',
+		'Kosher',
+		'Mediterranean',
+		'Mexican',
+		'Middle Eastern',
+		'Nordic',
+		'South American',
+		'South East Asian',
+	];
+
+	const allowedMealTypes = ['Breakfast', 'Dinner', 'Lunch', 'Snack', 'Teatime'];
+
+	const allowedDishTypes = [
+		'Biscuits and cookies',
+		'Bread',
+		'Cereals',
+		'Condiments and sauces',
+		'Desserts',
+		'Drinks',
+		'Main course',
+		'Pancake',
+		'Preps',
+		'Preserve',
+		'Salad',
+		'Sandwiches',
+		'Side dish',
+		'Soup',
+		'Starter',
+		'Sweets',
+	];
+
+	const params = {
+		query: req.query.query?.toString() ?? '*',
+		health: req.query.health?.toString(),
+		cuisine: req.query.cuisine?.toString(),
+		meal: req.query.meal?.toString(),
+		dish: req.query.dish?.toString(),
+	};
+
+	const options: Record<string, any> = {
+		url: 'https://api.edamam.com/api/recipes/v2',
+		searchParams: {
+			type: 'public',
+			app_id: process.env.EDAMAM_SEARCH_ID,
+			app_key: process.env.EDAMAM_SEARCH_KEY,
+			q: params.query,
+		},
+	};
+
+	if (params.health) {
+		if (
+			!allowedHealthTypes.find((x) => compareStringsContent(x, params.health!))
+		) {
+			return res.status(400).json(new CustomError('Not allowed health type'));
+		}
+
+		options.searchParams.health = params.health;
+	}
+
+	if (params.cuisine) {
+		if (
+			!allowedCuisineTypes.find((x) =>
+				compareStringsContent(x, params.cuisine!)
+			)
+		) {
+			return res.status(400).json(new CustomError('Not allowed cuisine type'));
+		}
+
+		options.searchParams.cuisineType = params.cuisine;
+	}
+
+	if (params.meal) {
+		if (!allowedMealTypes.find((x) => compareStringsContent(x, params.meal!))) {
+			return res.status(400).json(new CustomError('Not allowed meal type'));
+		}
+
+		options.searchParams.mealType = params.meal;
+	}
+
+	if (params.dish) {
+		if (!allowedDishTypes.find((x) => compareStringsContent(x, params.dish!))) {
+			return res.status(400).json(new CustomError('Not allowed dish type'));
+		}
+
+		options.searchParams.dishType = params.dish;
+	}
+
+	got(options)
+		.json()
+		.then((x) => res.status(200).json(x));
 });
 
 // @deprecated
