@@ -4,6 +4,7 @@ import { CustomError } from '../helpers/errors';
 import { paginate } from '../helpers/pagination';
 import { RecipeIntegration } from '../integration';
 import Recipe, { IRecipe } from '../models/recipe.model';
+import got from 'got';
 
 const recipeRouter = express.Router();
 
