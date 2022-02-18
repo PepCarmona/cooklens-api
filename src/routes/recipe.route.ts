@@ -2,7 +2,7 @@ import express from 'express';
 import { CallbackError } from 'mongoose';
 import { CustomError } from '../helpers/errors';
 import { paginate } from '../helpers/pagination';
-import { RecipeIntegration } from '../integration';
+import { MetadataRecipeIntegration } from '../integration/metadata';
 import Recipe, { IRecipe } from '../models/recipe.model';
 import got from 'got';
 import dotenv from 'dotenv';
@@ -178,7 +178,7 @@ recipeRouter.route('/import').get(async (req, res) => {
 
 	const urlString = String(req.query.url);
 
-	const recipe = new RecipeIntegration(urlString);
+	const recipe = new MetadataRecipeIntegration(urlString);
 
 	recipe
 		.populate()
