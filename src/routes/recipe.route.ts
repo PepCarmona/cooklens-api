@@ -1,12 +1,22 @@
 import express from 'express';
 import { CallbackError } from 'mongoose';
-import { CustomError } from '../helpers/errors';
-import { paginate } from '../helpers/pagination';
-import { MetadataRecipeIntegration } from '../integration/metadata';
-import Recipe, { IRecipe } from '../models/recipe.model';
 import got from 'got';
 import dotenv from 'dotenv';
+
+import {
+	healthTypes,
+	cuisineTypes,
+	dishTypes,
+	mealTypes,
+	Response,
+} from '../integration/edamam/types';
+import { MetadataRecipeIntegration } from '../integration/metadata';
+import Recipe, { IRecipe } from '../models/recipe.model';
+
+import { CustomError } from '../helpers/errors';
+import { paginate } from '../helpers/pagination';
 import { compareStringsContent } from '../helpers/comparison';
+import { EdamamRecipeIntegration } from '../integration/edamam';
 
 const recipeRouter = express.Router();
 
@@ -227,87 +237,6 @@ recipeRouter.route('/explore').get((req, res) => {
 		dotenv.config();
 	}
 
-	const allowedHealthTypes = [
-		'alcohol-cocktail',
-		'alcohol-free',
-		'celery-free',
-		'crustacean-free',
-		'dairy-free',
-		'DASH',
-		'egg-free',
-		'fish-free',
-		'fodmap-free',
-		'gluten-free',
-		'immuno-supportive',
-		'keto-friendly',
-		'kidney-friendly',
-		'kosher',
-		'low-fat-abs',
-		'low-potassium',
-		'low-sugar',
-		'lupine-free',
-		'Mediterranean',
-		'mollusk-free',
-		'mustard-free',
-		'no-oil-added',
-		'paleo',
-		'peanut-free',
-		'pescatarian',
-		'pork-free',
-		'red-meat-free',
-		'sesame-free',
-		'shellfish-free',
-		'soy-free',
-		'sugar-conscious',
-		'sulfite-free',
-		'tree-nut-free',
-		'vegan',
-		'vegetarian',
-		'wheat-free',
-	];
-
-	const allowedCuisineTypes = [
-		'American',
-		'Asian',
-		'British',
-		'Caribbean',
-		'Central Europe',
-		'Chinese',
-		'Eastern Europe',
-		'French',
-		'Indian',
-		'Italian',
-		'Japanese',
-		'Kosher',
-		'Mediterranean',
-		'Mexican',
-		'Middle Eastern',
-		'Nordic',
-		'South American',
-		'South East Asian',
-	];
-
-	const allowedMealTypes = ['Breakfast', 'Dinner', 'Lunch', 'Snack', 'Teatime'];
-
-	const allowedDishTypes = [
-		'Biscuits and cookies',
-		'Bread',
-		'Cereals',
-		'Condiments and sauces',
-		'Desserts',
-		'Drinks',
-		'Main course',
-		'Pancake',
-		'Preps',
-		'Preserve',
-		'Salad',
-		'Sandwiches',
-		'Side dish',
-		'Soup',
-		'Starter',
-		'Sweets',
-	];
-
 	const params = {
 		query: req.query.query?.toString() ?? '*',
 		health: req.query.health?.toString(),
@@ -327,9 +256,7 @@ recipeRouter.route('/explore').get((req, res) => {
 	};
 
 	if (params.health) {
-		if (
-			!allowedHealthTypes.find((x) => compareStringsContent(x, params.health!))
-		) {
+		if (!healthTypes.find((x) => compareStringsContent(x, params.health!))) {
 			return res.status(400).json(new CustomError('Not allowed health type'));
 		}
 
@@ -337,11 +264,7 @@ recipeRouter.route('/explore').get((req, res) => {
 	}
 
 	if (params.cuisine) {
-		if (
-			!allowedCuisineTypes.find((x) =>
-				compareStringsContent(x, params.cuisine!)
-			)
-		) {
+		if (!cuisineTypes.find((x) => compareStringsContent(x, params.cuisine!))) {
 			return res.status(400).json(new CustomError('Not allowed cuisine type'));
 		}
 
@@ -349,7 +272,7 @@ recipeRouter.route('/explore').get((req, res) => {
 	}
 
 	if (params.meal) {
-		if (!allowedMealTypes.find((x) => compareStringsContent(x, params.meal!))) {
+		if (!mealTypes.find((x) => compareStringsContent(x, params.meal!))) {
 			return res.status(400).json(new CustomError('Not allowed meal type'));
 		}
 
@@ -357,7 +280,7 @@ recipeRouter.route('/explore').get((req, res) => {
 	}
 
 	if (params.dish) {
-		if (!allowedDishTypes.find((x) => compareStringsContent(x, params.dish!))) {
+		if (!dishTypes.find((x) => compareStringsContent(x, params.dish!))) {
 			return res.status(400).json(new CustomError('Not allowed dish type'));
 		}
 
@@ -366,7 +289,14 @@ recipeRouter.route('/explore').get((req, res) => {
 
 	got(options)
 		.json()
-		.then((x) => res.status(200).json(x));
+		.then((x) => {
+			const edamamResponse = x as Response;
+			const recipes = edamamResponse.hits.map(
+				({ recipe }) => new EdamamRecipeIntegration(recipe)
+			);
+
+			res.status(200).json(recipes);
+		});
 });
 
 // @deprecated

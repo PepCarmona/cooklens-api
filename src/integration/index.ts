@@ -27,7 +27,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 		}
 	}
 
-	populate() {
+	populate(...args: unknown[]) {
 		Promise.reject('This method is not implemented');
 	}
 }
