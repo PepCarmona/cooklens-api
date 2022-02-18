@@ -160,10 +160,12 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
 
 		this.instructions = Array.isArray(metadata.recipeInstructions)
-			? metadata.recipeInstructions.map((x, i) => ({
-					content: sanitizeWhiteSpaces(typeof x === 'string' ? x : x.text),
-					position: i + 1,
-			  }))
+			? metadata.recipeInstructions.map(
+					(x: string | InstructionMetadata, i: number) => ({
+						content: sanitizeWhiteSpaces(typeof x === 'string' ? x : x.text),
+						position: i + 1,
+					})
+			  )
 			: [
 					{
 						content: metadata.recipeInstructions,
