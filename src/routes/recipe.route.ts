@@ -220,6 +220,12 @@ recipeRouter.route('/import').get(async (req, res) => {
 		);
 });
 
+recipeRouter.route('/search').get((req, res) => {
+	got(
+		'https://api.edamam.com/api/recipes/v2?type=public&q=*&app_id=c6f57a4d&app_key=e45745fd8d51ccccb947a60c2146e13c&health=dairy-free&cuisineType=American&mealType=Breakfast&dishType=desserts'
+	).then((x) => res.status(200).send(x));
+});
+
 // @deprecated
 recipeRouter.route('/integrated-sites').get((req, res) => {
 	res.status(500).json(new CustomError('Endpoint deprecated'));
