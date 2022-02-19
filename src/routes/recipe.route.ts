@@ -300,7 +300,10 @@ recipeRouter.route('/explore').get((req, res) => {
 			});
 
 			const result = await Promise.all(recipes);
-			res.status(200).json(result);
+			res.status(200).json({
+				result,
+				next: !!edamamResponse._links.next?.href,
+			});
 		});
 });
 
