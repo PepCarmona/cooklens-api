@@ -304,7 +304,8 @@ recipeRouter.route('/explore').get((req, res) => {
 				result,
 				next: !!edamamResponse._links.next?.href,
 			});
-		});
+		})
+		.catch((err) => res.status(500).json(new CustomError('got error', err)));
 });
 
 // @deprecated
