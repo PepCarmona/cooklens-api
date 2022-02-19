@@ -1,9 +1,22 @@
 import express from 'express';
 import { CallbackError } from 'mongoose';
+import got from 'got';
+import dotenv from 'dotenv';
+
+import {
+	healthTypes,
+	cuisineTypes,
+	dishTypes,
+	mealTypes,
+	Response,
+} from '../integration/edamam/types';
+import { MetadataRecipeIntegration } from '../integration/metadata';
+import Recipe, { IRecipe } from '../models/recipe.model';
+
 import { CustomError } from '../helpers/errors';
 import { paginate } from '../helpers/pagination';
-import { RecipeIntegration } from '../integration';
-import Recipe, { IRecipe } from '../models/recipe.model';
+import { compareStringsContent } from '../helpers/comparison';
+import { EdamamRecipeIntegration } from '../integration/edamam';
 
 const recipeRouter = express.Router();
 
@@ -175,7 +188,7 @@ recipeRouter.route('/import').get(async (req, res) => {
 
 	const urlString = String(req.query.url);
 
-	const recipe = new RecipeIntegration(urlString);
+	const recipe = new MetadataRecipeIntegration(urlString);
 
 	recipe
 		.populate()
@@ -217,6 +230,81 @@ recipeRouter.route('/import').get(async (req, res) => {
 		.catch((err) =>
 			res.status(500).json(new CustomError('Recipe integration failed', err))
 		);
+});
+
+recipeRouter.route('/explore').get((req, res) => {
+	if (process.env.NODE_ENV !== 'production') {
+		dotenv.config();
+	}
+
+	const params = {
+		query: req.query.query?.toString() ?? '*',
+		health: req.query.health?.toString(),
+		cuisine: req.query.cuisine?.toString(),
+		meal: req.query.meal?.toString(),
+		dish: req.query.dish?.toString(),
+	};
+
+	const options: Record<string, any> = {
+		url: 'https://api.edamam.com/api/recipes/v2',
+		searchParams: {
+			type: 'public',
+			app_id: process.env.EDAMAM_SEARCH_ID,
+			app_key: process.env.EDAMAM_SEARCH_KEY,
+			q: params.query,
+		},
+	};
+
+	if (params.health) {
+		if (!healthTypes.find((x) => compareStringsContent(x, params.health!))) {
+			return res.status(400).json(new CustomError('Not allowed health type'));
+		}
+
+		options.searchParams.health = params.health;
+	}
+
+	if (params.cuisine) {
+		if (!cuisineTypes.find((x) => compareStringsContent(x, params.cuisine!))) {
+			return res.status(400).json(new CustomError('Not allowed cuisine type'));
+		}
+
+		options.searchParams.cuisineType = params.cuisine;
+	}
+
+	if (params.meal) {
+		if (!mealTypes.find((x) => compareStringsContent(x, params.meal!))) {
+			return res.status(400).json(new CustomError('Not allowed meal type'));
+		}
+
+		options.searchParams.mealType = params.meal;
+	}
+
+	if (params.dish) {
+		if (!dishTypes.find((x) => compareStringsContent(x, params.dish!))) {
+			return res.status(400).json(new CustomError('Not allowed dish type'));
+		}
+
+		options.searchParams.dishType = params.dish;
+	}
+
+	got(options)
+		.json()
+		.then(async (x) => {
+			const edamamResponse = x as Response;
+			const recipes = edamamResponse.hits.map(async ({ recipe }) => {
+				const integratedRecipe = new EdamamRecipeIntegration(recipe.url);
+
+				await integratedRecipe.populate(recipe);
+
+				return integratedRecipe;
+			});
+
+			const result = await Promise.all(recipes);
+			res.status(200).json({
+				result,
+				next: !!edamamResponse._links.next?.href,
+			});
+		});
 });
 
 // @deprecated
