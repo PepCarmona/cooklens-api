@@ -253,6 +253,9 @@ recipeRouter.route('/explore').get((req, res) => {
 			app_key: process.env.EDAMAM_SEARCH_KEY,
 			q: params.query,
 		},
+		hooks: {
+			beforeRequest: [(opt: any) => console.log(opt.searchParams)],
+		},
 	};
 
 	if (params.health) {
