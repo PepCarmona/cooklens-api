@@ -17,6 +17,11 @@ import { CustomError } from '../helpers/errors';
 import { paginate } from '../helpers/pagination';
 import { compareStringsContent } from '../helpers/comparison';
 import { EdamamRecipeIntegration } from '../integration/edamam';
+import { HOST } from '../server';
+
+if (process.env.NODE_ENV !== 'production') {
+	dotenv.config();
+}
 
 const recipeRouter = express.Router();
 
@@ -48,7 +53,18 @@ recipeRouter.route('/get').get((req, res) => {
 			filter = { 'tags.value': regex };
 			break;
 	}
-	paginate(Recipe.find(filter), req, res);
+
+	const url = new URL(HOST);
+
+	url.pathname += '/recipes/get';
+	if (searchType !== 'title') {
+		url.searchParams.append('searchType', searchType.toString());
+	}
+	if (searchText) {
+		url.searchParams.append('searchText', searchText.toString());
+	}
+
+	paginate(Recipe.find(filter), url, req, res);
 });
 
 recipeRouter.route('/getById').get((req, res) => {
@@ -102,8 +118,12 @@ recipeRouter.route('/getByUser').get((req, res) => {
 		return res.status(400).json(new CustomError('No user provided'));
 	}
 
+	const url = new URL(HOST);
+	url.pathname += '/recipes/getByUser';
+	url.searchParams.append('id', userId.toString());
+
 	// @ts-ignore
-	paginate(Recipe.find({ author: userId }), req, res);
+	paginate(Recipe.find({ author: userId }), url, req, res);
 });
 
 recipeRouter.route('/add').post((req, res) => {
@@ -233,10 +253,6 @@ recipeRouter.route('/import').get(async (req, res) => {
 });
 
 recipeRouter.route('/explore').get((req, res) => {
-	if (process.env.NODE_ENV !== 'production') {
-		dotenv.config();
-	}
-
 	const params = {
 		query: req.query.query?.toString() ?? '*',
 		health: req.query.health?.toString(),
