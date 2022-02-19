@@ -254,7 +254,7 @@ recipeRouter.route('/explore').get((req, res) => {
 			q: params.query,
 		},
 		hooks: {
-			beforeRequest: [(opt: any) => console.log(opt.searchParams)],
+			beforeRequest: [(opt: any) => console.log(opt.url)],
 		},
 	};
 
