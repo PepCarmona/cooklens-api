@@ -1,14 +1,27 @@
 import { RecipeIntegration } from '..';
+import { getTimeFromMetadataString } from '../../helpers/dateTime';
+import {
+	getIngredientsFromMetadata,
+	getRatingFromMetadata,
+	scrapeMetadata,
+} from '../metadata/scrape';
+import { RecipeMetadata } from '../metadata/types';
 import { Recipe } from './types';
 
 export class EdamamRecipeIntegration extends RecipeIntegration {
-	constructor(recipe: Recipe) {
-		super(recipe.url);
+	public populate(recipe: Recipe) {
+		this.isIntegrated = true;
 
-		this.populate(recipe);
+		this.populateFromEdamamRecipe(recipe);
+
+		return scrapeMetadata(this.url).then(({ recipeMetadata }) => {
+			if (recipeMetadata) {
+				this.completePopulationFromMetadata(recipeMetadata);
+			}
+		});
 	}
 
-	public async populate(recipe: Recipe) {
+	private populateFromEdamamRecipe(recipe: Recipe) {
 		this.title = recipe.label;
 
 		this.images = Object.values(recipe.images).map((img) => img.url);
@@ -21,8 +34,27 @@ export class EdamamRecipeIntegration extends RecipeIntegration {
 
 		this.ingredients = recipe.ingredients.map((ingredient) => ({
 			quantity: ingredient.quantity,
-			units: ingredient.measure,
+			units: ingredient.measure === '<unit>' ? '' : ingredient.measure,
 			name: ingredient.food,
 		}));
+	}
+
+	private completePopulationFromMetadata(metadata: RecipeMetadata) {
+		const { description, prepTime, cookTime } = metadata;
+
+		this.hasRecipeMetadata = true;
+
+		this.description = description;
+
+		if (prepTime && cookTime) {
+			this.time = {
+				preparation: getTimeFromMetadataString(prepTime),
+				cooking: getTimeFromMetadataString(cookTime),
+			};
+		}
+
+		this.instructions = getIngredientsFromMetadata(metadata);
+
+		this.rating = getRatingFromMetadata(metadata);
 	}
 }

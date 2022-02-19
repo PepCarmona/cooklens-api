@@ -1,9 +1,14 @@
 import { RecipeIntegration } from '..';
-import { InstructionMetadata, RecipeMetadata } from './types';
+import { RecipeMetadata } from './types';
 
 import { getTimeFromMetadataString } from '../../helpers/dateTime';
-import { sanitizeWhiteSpaces } from '../../helpers/string';
-import { scrapeMetadata } from './scrape';
+import {
+	getImagesFromMetadata,
+	getIngredientsFromMetadata,
+	getRatingFromMetadata,
+	getTagsFromMetadata,
+	scrapeMetadata,
+} from './scrape';
 
 export class MetadataRecipeIntegration extends RecipeIntegration {
 	public populate(): Promise<void> {
@@ -46,47 +51,13 @@ export class MetadataRecipeIntegration extends RecipeIntegration {
 
 		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
 
-		this.instructions = Array.isArray(metadata.recipeInstructions)
-			? metadata.recipeInstructions.map(
-					(x: string | InstructionMetadata, i: number) => ({
-						content: sanitizeWhiteSpaces(typeof x === 'string' ? x : x.text),
-						position: i + 1,
-					})
-			  )
-			: [
-					{
-						content: metadata.recipeInstructions,
-						position: 1,
-					},
-			  ];
+		this.instructions = getIngredientsFromMetadata(metadata);
 
-		const categoryArray: string[] = Array.isArray(metadata.recipeCategory)
-			? metadata.recipeCategory
-			: metadata.recipeCategory?.split(', ') ?? [];
+		this.tags = getTagsFromMetadata(metadata);
 
-		const cuisineArray: string[] = Array.isArray(metadata.recipeCuisine)
-			? metadata.recipeCuisine
-			: metadata.recipeCuisine?.split(', ').filter((x) => x !== '') ?? [];
+		this.images = getImagesFromMetadata(metadata);
 
-		this.tags = [...new Set(categoryArray.concat(cuisineArray))].map((x) => ({
-			value: x,
-		}));
-
-		this.images = Array.isArray(metadata.image)
-			? metadata.image.flat().map((x) => (typeof x === 'string' ? x : x.url))
-			: typeof metadata.image === 'string'
-			? [metadata.image]
-			: [metadata.image.url];
-
-		this.rating = metadata.aggregateRating
-			? metadata.aggregateRating.bestRating
-				? (metadata.aggregateRating.ratingValue /
-						parseInt(metadata.aggregateRating.bestRating)) *
-				  5
-				: metadata.aggregateRating.ratingValue > 5
-				? 0
-				: metadata.aggregateRating.ratingValue
-			: 0;
+		this.rating = getRatingFromMetadata(metadata);
 
 		this.isIntegrated = true;
 		this.hasRecipeMetadata = true;

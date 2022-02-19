@@ -289,13 +289,18 @@ recipeRouter.route('/explore').get((req, res) => {
 
 	got(options)
 		.json()
-		.then((x) => {
+		.then(async (x) => {
 			const edamamResponse = x as Response;
-			const recipes = edamamResponse.hits.map(
-				({ recipe }) => new EdamamRecipeIntegration(recipe)
-			);
+			const recipes = edamamResponse.hits.map(async ({ recipe }) => {
+				const integratedRecipe = new EdamamRecipeIntegration(recipe.url);
 
-			res.status(200).json(recipes);
+				await integratedRecipe.populate(recipe);
+
+				return integratedRecipe;
+			});
+
+			const result = await Promise.all(recipes);
+			res.status(200).json(result);
 		});
 });
 
