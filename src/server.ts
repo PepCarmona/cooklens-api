@@ -10,6 +10,11 @@ import mealPlanRouter from './routes/mealPlan.route';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+export const HOST =
+	process.env.NODE_ENV === 'production'
+		? new URL('https://cooklens.pepcarmona.com/api')
+		: new URL(`http://localhost:${PORT}/api`);
+
 if (process.env.NODE_ENV !== 'production') {
 	dotenv.config();
 }
