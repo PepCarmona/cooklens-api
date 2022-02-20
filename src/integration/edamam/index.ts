@@ -11,14 +11,15 @@ import { Recipe } from './types';
 export class EdamamRecipeIntegration extends RecipeIntegration {
 	public populate(recipe: Recipe) {
 		this.isIntegrated = true;
-
 		this.populateFromEdamamRecipe(recipe);
 
-		return scrapeMetadata(this.url).then(({ recipeMetadata }) => {
-			if (recipeMetadata) {
-				this.completePopulationFromMetadata(recipeMetadata);
-			}
-		});
+		return scrapeMetadata(this.url)
+			.then(({ recipeMetadata }) => {
+				if (recipeMetadata) {
+					this.completePopulationFromMetadata(recipeMetadata);
+				}
+			})
+			.catch((err) => err);
 	}
 
 	private populateFromEdamamRecipe(recipe: Recipe) {

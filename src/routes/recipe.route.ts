@@ -14,7 +14,7 @@ import { MetadataRecipeIntegration } from '../integration/metadata';
 import Recipe, { IRecipe } from '../models/recipe.model';
 
 import { CustomError } from '../helpers/errors';
-import { paginate } from '../helpers/pagination';
+import { paginate, PaginatedResult } from '../helpers/pagination';
 import { compareStringsContent } from '../helpers/comparison';
 import { EdamamRecipeIntegration } from '../integration/edamam';
 import { HOST } from '../server';
@@ -259,6 +259,7 @@ recipeRouter.route('/explore').get((req, res) => {
 		cuisine: req.query.cuisine?.toString(),
 		meal: req.query.meal?.toString(),
 		dish: req.query.dish?.toString(),
+		_cont: req.query._cont?.toString(),
 	};
 
 	const options: Record<string, any> = {
@@ -303,6 +304,10 @@ recipeRouter.route('/explore').get((req, res) => {
 		options.searchParams.dishType = params.dish;
 	}
 
+	if (params._cont) {
+		options.searchParams._cont = params._cont;
+	}
+
 	got(options)
 		.json()
 		.then(async (x) => {
@@ -316,10 +321,46 @@ recipeRouter.route('/explore').get((req, res) => {
 			});
 
 			const result = await Promise.all(recipes);
+
+			function getNextUrl() {
+				const edamamNextUrl = edamamResponse._links.next?.href;
+
+				if (!edamamNextUrl) {
+					return null;
+				}
+
+				const nextUrl = new URL(HOST);
+				nextUrl.pathname += '/recipes/explore';
+				if (params.query !== '*') {
+					nextUrl.searchParams.append('query', params.query);
+				}
+				if (params.health) {
+					nextUrl.searchParams.append('health', params.health);
+				}
+				if (params.cuisine) {
+					nextUrl.searchParams.append('cuisine', params.cuisine);
+				}
+				if (params.meal) {
+					nextUrl.searchParams.append('meal', params.meal);
+				}
+				if (params.dish) {
+					nextUrl.searchParams.append('dish', params.dish);
+				}
+
+				const _cont = new URL(edamamNextUrl).searchParams.get('_cont');
+
+				if (_cont) {
+					nextUrl.searchParams.append('_cont', _cont);
+				}
+
+				return nextUrl;
+			}
+
 			res.status(200).json({
 				result,
-				next: !!edamamResponse._links.next?.href,
-			});
+				next: getNextUrl(),
+				prev: null,
+			} as PaginatedResult<EdamamRecipeIntegration>);
 		})
 		.catch((err) => res.status(500).json(new CustomError('got error', err)));
 });
