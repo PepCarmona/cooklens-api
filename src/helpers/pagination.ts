@@ -32,24 +32,16 @@ export function paginate<T>(
 				result.pop();
 			}
 
-			const nextUrl = new URL(path);
+			const nextUrl = new URL(path.toString());
 			nextUrl.searchParams.append('page', (page + 1).toString());
 
 			if (limit !== defaultLimitPerPage) {
 				nextUrl.searchParams.append('limit', limit.toString());
 			}
 
-			const prevUrl = new URL(path);
-			prevUrl.searchParams.append('page', (page - 1).toString());
-
-			if (limit !== defaultLimitPerPage) {
-				prevUrl.searchParams.append('limit', limit.toString());
-			}
-
 			res.status(200).json({
 				result,
 				next: isNext ? nextUrl : null,
-				prev: page > 1 ? prevUrl : null,
 			} as PaginatedResult<T>);
 		})
 		.catch((err: CallbackError) => {

@@ -25,7 +25,7 @@ export class EdamamRecipeIntegration extends RecipeIntegration {
 	private populateFromEdamamRecipe(recipe: Recipe) {
 		this.title = recipe.label;
 
-		this.images = Object.values(recipe.images).map((img) => img.url);
+		this.images = Object.values(recipe.images).map((img) => img?.url ?? '');
 
 		this.servings = recipe.yield?.toString();
 

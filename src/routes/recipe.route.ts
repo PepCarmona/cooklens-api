@@ -54,7 +54,7 @@ recipeRouter.route('/get').get((req, res) => {
 			break;
 	}
 
-	const url = new URL(HOST);
+	const url = new URL(HOST.toString());
 
 	url.pathname += '/recipes/get';
 	if (searchType !== 'title') {
@@ -118,7 +118,7 @@ recipeRouter.route('/getByUser').get((req, res) => {
 		return res.status(400).json(new CustomError('No user provided'));
 	}
 
-	const url = new URL(HOST);
+	const url = new URL(HOST.toString());
 	url.pathname += '/recipes/getByUser';
 	url.searchParams.append('id', userId.toString());
 
@@ -329,7 +329,7 @@ recipeRouter.route('/explore').get((req, res) => {
 					return null;
 				}
 
-				const nextUrl = new URL(HOST);
+				const nextUrl = new URL(HOST.toString());
 				nextUrl.pathname += '/recipes/explore';
 				if (params.query !== '*') {
 					nextUrl.searchParams.append('query', params.query);
@@ -359,7 +359,6 @@ recipeRouter.route('/explore').get((req, res) => {
 			res.status(200).json({
 				result,
 				next: getNextUrl(),
-				prev: null,
 			} as PaginatedResult<EdamamRecipeIntegration>);
 		})
 		.catch((err) => res.status(500).json(new CustomError('got error', err)));
