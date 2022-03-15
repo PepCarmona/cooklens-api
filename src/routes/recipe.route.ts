@@ -14,9 +14,14 @@ import { MetadataRecipeIntegration } from '../integration/metadata';
 import Recipe, { IRecipe } from '../models/recipe.model';
 
 import { CustomError } from '../helpers/errors';
-import { paginate } from '../helpers/pagination';
+import { paginate, PaginatedResult } from '../helpers/pagination';
 import { compareStringsContent } from '../helpers/comparison';
 import { EdamamRecipeIntegration } from '../integration/edamam';
+import { HOST } from '../server';
+
+if (process.env.NODE_ENV !== 'production') {
+	dotenv.config();
+}
 
 const recipeRouter = express.Router();
 
@@ -48,7 +53,18 @@ recipeRouter.route('/get').get((req, res) => {
 			filter = { 'tags.value': regex };
 			break;
 	}
-	paginate(Recipe.find(filter), req, res);
+
+	const url = new URL(HOST.toString());
+
+	url.pathname += '/recipes/get';
+	if (searchType !== 'title') {
+		url.searchParams.append('searchType', searchType.toString());
+	}
+	if (searchText) {
+		url.searchParams.append('searchText', searchText.toString());
+	}
+
+	paginate(Recipe.find(filter), url, req, res);
 });
 
 recipeRouter.route('/getById').get((req, res) => {
@@ -102,8 +118,12 @@ recipeRouter.route('/getByUser').get((req, res) => {
 		return res.status(400).json(new CustomError('No user provided'));
 	}
 
+	const url = new URL(HOST.toString());
+	url.pathname += '/recipes/getByUser';
+	url.searchParams.append('id', userId.toString());
+
 	// @ts-ignore
-	paginate(Recipe.find({ author: userId }), req, res);
+	paginate(Recipe.find({ author: userId }), url, req, res);
 });
 
 recipeRouter.route('/add').post((req, res) => {
@@ -233,16 +253,13 @@ recipeRouter.route('/import').get(async (req, res) => {
 });
 
 recipeRouter.route('/explore').get((req, res) => {
-	if (process.env.NODE_ENV !== 'production') {
-		dotenv.config();
-	}
-
 	const params = {
 		query: req.query.query?.toString() ?? '*',
 		health: req.query.health?.toString(),
 		cuisine: req.query.cuisine?.toString(),
 		meal: req.query.meal?.toString(),
 		dish: req.query.dish?.toString(),
+		_cont: req.query._cont?.toString(),
 	};
 
 	const options: Record<string, any> = {
@@ -287,6 +304,10 @@ recipeRouter.route('/explore').get((req, res) => {
 		options.searchParams.dishType = params.dish;
 	}
 
+	if (params._cont) {
+		options.searchParams._cont = params._cont;
+	}
+
 	got(options)
 		.json()
 		.then(async (x) => {
@@ -300,10 +321,45 @@ recipeRouter.route('/explore').get((req, res) => {
 			});
 
 			const result = await Promise.all(recipes);
+
+			function getNextUrl() {
+				const edamamNextUrl = edamamResponse._links.next?.href;
+
+				if (!edamamNextUrl) {
+					return null;
+				}
+
+				const nextUrl = new URL(HOST.toString());
+				nextUrl.pathname += '/recipes/explore';
+				if (params.query !== '*') {
+					nextUrl.searchParams.append('query', params.query);
+				}
+				if (params.health) {
+					nextUrl.searchParams.append('health', params.health);
+				}
+				if (params.cuisine) {
+					nextUrl.searchParams.append('cuisine', params.cuisine);
+				}
+				if (params.meal) {
+					nextUrl.searchParams.append('meal', params.meal);
+				}
+				if (params.dish) {
+					nextUrl.searchParams.append('dish', params.dish);
+				}
+
+				const _cont = new URL(edamamNextUrl).searchParams.get('_cont');
+
+				if (_cont) {
+					nextUrl.searchParams.append('_cont', _cont);
+				}
+
+				return nextUrl;
+			}
+
 			res.status(200).json({
 				result,
-				next: !!edamamResponse._links.next?.href,
-			});
+				next: getNextUrl(),
+			} as PaginatedResult<EdamamRecipeIntegration>);
 		})
 		.catch((err) => res.status(500).json(new CustomError('got error', err)));
 });
