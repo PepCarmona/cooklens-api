@@ -7,11 +7,12 @@
 	"description": "backend for cooklens web app",
 	"main": "server.ts",
 	"scripts": {
-		"start": "node dist/server.js",
-		"postinstall": "tsc",
+		"start": "npm run build && node dist/server.js",
+		"build": "tsc",
+		"postinstall": "npm run build",
 		"watch-node": "nodemon dist/server.js",
-		"watch-tsc": "tsc -w",
-		"dev": "concurrently --kill-others \"npm run watch-tsc\" \"npm run watch-node\""
+		"watch-build": "tsc -w",
+		"dev": "concurrently --kill-others \"npm run watch-build\" \"npm run watch-node\""
 	},
 	"repository": {
 		"type": "git",
