@@ -9,6 +9,7 @@ import {
 	getTagsFromMetadata,
 	scrapeMetadata,
 } from './scrape';
+import { findFirstSequenceOfNumbers } from '../../helpers/string';
 
 export class MetadataRecipeIntegration extends RecipeIntegration {
 	public populate(): Promise<void> {
@@ -46,8 +47,8 @@ export class MetadataRecipeIntegration extends RecipeIntegration {
 		};
 
 		this.servings = Array.isArray(metadata.recipeYield)
-			? parseInt(metadata.recipeYield[0]) || 4
-			: parseInt(metadata.recipeYield) || 4;
+			? findFirstSequenceOfNumbers(metadata.recipeYield[0]) || 4
+			: findFirstSequenceOfNumbers(metadata.recipeYield) || 4;
 
 		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
 
