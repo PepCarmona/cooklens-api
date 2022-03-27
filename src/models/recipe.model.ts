@@ -59,8 +59,8 @@ const RecipeSchema = new Schema<IRecipe>({
 	description: String,
 	time: RecipeTimeSchema,
 	servings: {
-		type: String,
-		default: '4',
+		type: Number,
+		default: 4,
 	},
 	ingredients: [IngredientSchema],
 	instructions: [StepSchema],

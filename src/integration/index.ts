@@ -10,7 +10,7 @@ export class RecipeIntegration implements RecipeIntegrationInterface {
 	title = '';
 	description?: string;
 	time?: RecipeTime;
-	servings = '4';
+	servings = 4;
 	ingredients: Ingredient[] = [];
 	instructions: Step[] = [];
 	tags: Tag[] = [];

@@ -46,8 +46,8 @@ export class MetadataRecipeIntegration extends RecipeIntegration {
 		};
 
 		this.servings = Array.isArray(metadata.recipeYield)
-			? metadata.recipeYield[0]
-			: metadata.recipeYield;
+			? parseInt(metadata.recipeYield[0]) || 4
+			: parseInt(metadata.recipeYield) || 4;
 
 		this.ingredients = metadata.recipeIngredient.map((x) => ({ name: x }));
 

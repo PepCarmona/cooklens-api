@@ -27,7 +27,7 @@ export class EdamamRecipeIntegration extends RecipeIntegration {
 
 		this.images = Object.values(recipe.images).map((img) => img?.url ?? '');
 
-		this.servings = recipe.yield?.toString();
+		this.servings = recipe.yield || 4;
 
 		this.time = {
 			cooking: recipe.totalTime,
