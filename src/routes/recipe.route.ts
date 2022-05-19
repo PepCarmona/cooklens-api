@@ -18,6 +18,7 @@ import { paginate, PaginatedResult } from '../helpers/pagination';
 import { compareStringsContent } from '../helpers/comparison';
 import { EdamamRecipeIntegration } from '../integration/edamam';
 import { HOST } from '../server';
+import { ClientRecipe } from 'cooklens-types';
 
 if (process.env.NODE_ENV !== 'production') {
 	dotenv.config();
@@ -127,7 +128,7 @@ recipeRouter.route('/getByUser').get((req, res) => {
 });
 
 recipeRouter.route('/add').post((req, res) => {
-	const recipe: IRecipe = req.body;
+	const recipe: ClientRecipe = req.body;
 
 	if (!recipe || Object.keys(recipe).length === 0) {
 		return res.status(400).json(new CustomError('Cannot save empty objects'));
